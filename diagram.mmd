@@ -1,0 +1,64 @@
+flowchart TD
+%% ── the journey ──
+    subgraph JOURNEY["PURPOSE — onboarding, not mastery"]
+        direction LR
+        KNOWN["you know<br/>Java : 3"] -->|"ramp · 14 days × 45 min<br/>hands-on slices"| EARNED["you earn<br/>Python : 2"]
+    end
+
+%% ── plan once ──
+    subgraph SETUP["PLAN ONCE — ramp init"]
+        MATRIX[("matrix.yaml<br/>frozen level descriptors<br/>law, never self-reported")]
+        PLANNER["planner agent<br/>strong model · runs once"]
+        CURR["curriculum<br/>vertical slices S1 … S8<br/>every slice ends runnable"]
+        MATRIX --> PLANNER
+        PLANNER -->|"decompose can-dos<br/>→ concepts → slices"| CURR
+        PLANNER -.->|"bridges: explicit Java ↔ Python<br/>comparisons in every brief"| CURR
+    end
+
+%% ── daily loop ──
+    subgraph LOOP["DAILY PRACTICE LOOP — ~45 min"]
+        TODAY["ramp today<br/>due review cards + slice brief<br/>≤ 150 words · no code"]
+        CODE["you code by hand<br/>in your own editor"]
+        SUBMIT["ramp submit"]
+        SANDBOX[/"sandbox: hidden acceptance tests<br/>deterministic · 30s cap"/]
+        REVIEWER["reviewer agent<br/>verdict + one hint per issue"]
+        VERDICT{"pass?<br/>tests green ≠ learned —<br/>concepts must show"}
+        TEACH["teach-back<br/>graded 0–5 vs rubric<br/>cheap model"]
+        PASS["streak++<br/>next slice unlocks"]
+        TODAY --> CODE --> SUBMIT --> SANDBOX --> REVIEWER --> VERDICT
+        VERDICT -->|"needs_work — fix, resubmit"| CODE
+        VERDICT -->|"pass"| TEACH --> PASS
+    end
+
+%% ── retention ──
+    subgraph RETAIN["RETENTION — FSRS spaced repetition"]
+        FSRS[("card store<br/>py-fsrs forgetting-edge scheduler")]
+        REVIEWER ==>|"weak concept:<br/>2+ attempts or negative delta"| FSRS
+        FSRS -.->|"cards resurface interleaved<br/>in future today sessions"| TODAY
+    end
+
+%% ── the exam ──
+    subgraph PROVE["LEVELS ARE EARNED, NEVER CLAIMED"]
+        EXAM["level exam — final slice<br/>acceptance = every can-do, unaided"]
+        EARN["matrix gains python : 2<br/>written only by the exam runner"]
+        EXAM ==>|"pass"| EARN
+    end
+
+%% ── ground rules ──
+    subgraph RULES["GROUND RULES — constitutional"]
+        direction LR
+        R1["never writes your code<br/>hints locate, never fix"]
+        R2["deterministic where it counts<br/>FSRS · streaks · level gate · sandbox"]
+        R3["local-first ~/.ramp, git-backed<br/>swappable model endpoints, local or external"]
+    end
+
+%% ── wiring across phases ──
+    KNOWN -.->|"me-row = bridge fuel"| MATRIX
+    CURR -->|"slice N"| TODAY
+    PASS ==>|"after the last practice slice"| EXAM
+    EARNED -.- PROVE
+    RULES -.- LOOP
+
+    style CODE fill:#e8f2ff,stroke:#2b6cb0,stroke-width:2px
+    style REVIEWER fill:#fff4e5,stroke:#e8590c
+    style EARN fill:#e9f7ec,stroke:#2f9e44,stroke-width:2px
