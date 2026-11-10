@@ -1,0 +1,33 @@
+[project]
+name = "ramp"
+version = "0.1.0"
+description = "Local-first CLI that onboards a developer onto a new tech stack via daily micro-projects."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "typer",
+    "rich",
+    "pydantic",
+    "pydantic-ai",
+    "fsrs",
+]
+
+[project.scripts]
+ramp = "ramp.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ramp"]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "pyyaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
