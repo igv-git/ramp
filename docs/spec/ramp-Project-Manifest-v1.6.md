@@ -147,6 +147,8 @@ python → 2 (practice toward the level; not certified in the MVP) from {java:3}
 
 `cli` (input/render; typer, rich) · `loop` (thin step-sequencer: verdict state machine, regeneration ≤ 2, offline routing; no business logic) · `agents/` (planner, writer, reviewer, grader — typed functions returning validated models; no storage imports; per-role files, so a future chat role is additive) · `providers` (per-role endpoints, token caps, abort, offline queue; the only network) · `gate` (applies validated agent output to state; the only LLM→storage path) · `runner` (allowlist validation; the only subprocess; v1.0 execution semantics — real workspace, stripped env, 30s; also a fixed-argv helper for tool-authored commands such as the export commit, which never takes LLM-derived input) · `review` (py-fsrs) · `plan` (curriculum state, unlock) · `matrix` (law loader: descriptors + claims; the earned-level writer is parked with the exam, OD-15) · `store` (the only sqlite client; JSONL export) · `lint` (eval set; CI).
 
+**Shared leaf utilities (not modules)**: models, config, paths — no I/O beyond files."
+
 **Import invariants:** sqlite only in store; network only in providers; subprocess only in runner; agents never import store; all writes via store; LLM-derived writes only via gate; no MVP path writes earned levels (parked with the exam, OD-15).
 
 **Extension points (parked features slot in additively):** commands register in one dispatch table in cli/loop (chat, stats); the writer schema carries context[] (ingestion); the store already records everything stats would query; the parked exam path (§10) reuses the runner → gate → matrix seam.
