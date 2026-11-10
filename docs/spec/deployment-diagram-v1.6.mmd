@@ -1,0 +1,92 @@
+flowchart TB
+%% ── build plane (not runtime) ──
+    subgraph BUILD["BUILD PLANE — one-pass spec-kit, lights-out · manifest outranks this diagram"]
+        GH[("source repo + GitHub Actions<br/>pytest on push · red blocks merge<br/>one specify → plan → tasks<br/>6–8 staged implement runs → one converge<br/>Gates A and B · 1 holdout on the pass rule")]
+    end
+
+%% ── the laptop ──
+    subgraph LAPTOP["YOUR LAPTOP — the only runtime machine · dev = production · no daemon · no Docker"]
+        direction TB
+
+        EDITOR["your editor — outside ramp<br/>you code by hand"]
+
+        subgraph PROCESS["ramp — one fresh process per command · 5 commands: init · today · submit · export · flag-bridge"]
+            direction TB
+            CLI["cli<br/>input · render (typer / rich)"]
+            LOOP["loop — thin sequencer<br/>verdict state machine · regen ≤ 2 · offline routing · no business logic"]
+
+            subgraph LLMB["LLM BOUNDARY — 4 roles"]
+                direction TB
+                AGENTS["agents/ — planner · writer · reviewer · grader<br/>typed models · never touch storage"]
+                PROVIDERS["providers — THE ONLY NETWORK<br/>per-role endpoints · token caps · offline queue"]
+                AGENTS --> PROVIDERS
+            end
+
+            subgraph CORE["DETERMINISTIC CORE — no LLM · no network"]
+                direction TB
+                GATE["gate<br/>applies validated reviewer and grader output<br/>the only LLM-to-storage path"]
+                RUNNER["runner — THE ONLY SUBPROCESS<br/>argv allowlist · 30s · stripped env<br/>+ fixed-argv helper for git (never LLM input)"]
+                REVIEW["review — py-fsrs<br/>grader 0–5 → FSRS rating<br/>0–1 again · 2 hard · 3–4 good · 5 easy"]
+                PLAN["plan — curriculum · unlock<br/>unknown skill → drafted descriptors, user approval"]
+                MATRIX["matrix — law loader<br/>descriptors · claims<br/>earned-level writer parked (OD-15)"]
+                STORE["store — the only sqlite client<br/>JSONL export · prints counts"]
+                LINT["lint<br/>regex + schema · eval set in CI"]
+            end
+        end
+
+        subgraph DATA["~/.ramp — local-first data · a git repo (created by init via the fixed-argv helper)"]
+            direction TB
+            CONFIG["config.toml<br/>roles · threshold 3/5 · caps"]
+            LAW["descriptors.yaml — law<br/>claims.yaml — bridge fuel"]
+            PLANS[("plan.json<br/>slices · can-do → concept map")]
+            DB[("profile.db — sqlite (not in git)<br/>attempts · cards · bridge_flags")]
+            SLICES["slices/NN/<br/>brief · tests · workspace · attempts"]
+            EXPORTS["exports/*.jsonl<br/>auto after every today / submit<br/>committed via the fixed-argv helper"]
+        end
+    end
+
+%% ── off-machine ──
+    subgraph EGRESS["OFF-MACHINE — Art. VIII egress law"]
+        OR["OpenRouter (default) / local endpoint<br/>strong — planner · writer<br/>reviewer — different model than writer<br/>cheap — grader"]
+    end
+
+%% ── control flow ──
+    CLI --> LOOP
+    LOOP --> AGENTS
+    LOOP --> GATE
+    LOOP --> RUNNER
+    LOOP -->|"due cards · next slice"| REVIEW
+    LOOP --> PLAN
+    LOOP -->|"flag-bridge · counts"| STORE
+
+%% ── the sealed LLM seam ──
+    AGENTS -.->|"typed models · no code fields"| GATE
+    LINT -.->|"violation → regen max 2"| AGENTS
+
+%% ── deterministic writes ──
+    GATE --> STORE
+    REVIEW --> STORE
+    PLAN --> STORE
+
+%% ── execution ──
+    RUNNER -->|"acceptance argv · real workspace cwd<br/>generation-time check on every written slice"| SLICES
+    RUNNER -->|"git init / commit"| EXPORTS
+
+%% ── data ──
+    STORE --> DB
+    STORE --> EXPORTS
+    MATRIX -->|"reads law"| LAW
+    AGENTS -.->|"planner reads law + fuel"| LAW
+
+%% ── egress & offline ──
+    PROVIDERS -->|"HTTPS — the only arrow off the machine"| OR
+    PROVIDERS -.->|"offline: attempt stored pending_review<br/>drains at the start of every today / submit"| STORE
+
+%% ── external ──
+    EDITOR -.->|"you write code here"| SLICES
+    GH -.->|"agents author · CI gates · uv install lands here"| PROCESS
+
+    style AGENTS fill:#fff4e5,stroke:#e8590c
+    style GATE fill:#e9f7ec,stroke:#2f9e44
+    style OR fill:#ffe3e3,stroke:#c92a2a
+    style DB fill:#e8f2ff,stroke:#2b6cb0

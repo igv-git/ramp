@@ -1,0 +1,18 @@
+# descriptors.yaml — frozen level descriptors (law; Art. III)
+#
+# MOCK VALUES (OD-12). Owner-authorized placeholders so the build can start.
+# The owner replaces them with real law BEFORE the W1 gate, then sets
+# _meta.status to "approved". Tooling must refuse to treat a "mock" file as
+# approved law (the W1 gate "init on python -> sane curriculum" needs real text).
+
+_meta:
+  status: mock            # mock | approved
+  note: placeholder text adapted from the v1.0 manifest (section 3.4); not reviewed as law
+
+python:
+  1: >-
+    Reads Python: variables, control flow, basic data structures; modifies an
+    existing script with guidance; cannot start a project alone.
+  2: >-
+    Ships a small tested program alone: idiomatic functions, comprehensions,
+    exceptions, argparse CLIs, a pytest suite, packaging via pyproject.

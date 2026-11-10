@@ -1,0 +1,8 @@
+# claims.yaml — self-reported levels: bridge fuel, NOT authoritative.
+# Claims license bridge depth only (java:3 = deep comparisons, js:1 = shallow).
+# They never count as earned levels (Art. II). The UI labels them as claims.
+
+me:
+  java: 3
+  sql: 1
+  js: 1

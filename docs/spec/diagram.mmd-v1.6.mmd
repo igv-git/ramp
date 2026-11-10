@@ -1,0 +1,87 @@
+flowchart TD
+%% ── the journey ──
+    subgraph JOURNEY["PURPOSE — onboarding, not mastery"]
+        direction LR
+        KNOWN["you know<br/>Java : 3"] -->|"ramp · up to 14 days × 45 min<br/>MVP dogfood: 3 days"| PRACTICE["you practice toward<br/>Python : 2 (not certified)"]
+    end
+
+%% ── plan once ──
+    subgraph SETUP["PLAN ONCE — ramp init"]
+        ELIG{"eligibility check:<br/>every can-do checkable by<br/>a local command in ~1 min?"}
+        STOP["refuse honestly<br/>+ explain why"]
+        DESC[("descriptors.yaml<br/>frozen level descriptors — law<br/>unknown skill: user approves the draft")]
+        CLAIMS[("claims.yaml<br/>self-reported levels<br/>bridge fuel · non-authoritative")]
+        PLANNER["planner agent<br/>strong model · runs once"]
+        CURR["curriculum<br/>vertical slices S1 … S7<br/>every slice ends runnable"]
+        GENCHK{"generation-time check:<br/>tests collect without learner code<br/>and are not all green on the empty scaffold?"}
+        ELIG -->|"no"| STOP
+        ELIG -->|"yes"| PLANNER
+        DESC --> PLANNER
+        CLAIMS -->|"bridge depth"| PLANNER
+        PLANNER -->|"decompose can-dos<br/>→ concepts → slices"| CURR
+        PLANNER -.->|"bridges: explicit Java ↔ Python<br/>comparisons in every brief"| CURR
+        CURR -->|"each written slice"| GENCHK
+        GENCHK -->|"fail → regenerate max 2<br/>then stop loudly"| CURR
+    end
+
+%% ── daily loop ──
+    subgraph LOOP["DAILY PRACTICE LOOP — ~45 min"]
+        TODAY["ramp today<br/>due cards first<br/>then slice brief ≤ 150 words · no code"]
+        CARDS["answer due cards<br/>grader 0–5 → FSRS rating → reschedule"]
+        CODE["you code by hand<br/>in your own editor"]
+        SUBMIT["ramp submit"]
+        RUN["runner: allowlist-validated argv commands<br/>real workspace · stripped env · 30s"]
+        REVIEWER["reviewer agent<br/>different model than the writer"]
+        LINT{"leak lint:<br/>hint fixes instead<br/>of locating?"}
+        VERDICT{"pass rule:<br/>tests green ∧ concepts ≥ 3/5<br/>evidence-backed ∧ no leak"}
+        BLOCKED["blocked — runner / timeout / provider failure,<br/>or pytest exit 2–5 with unchanged fingerprint<br/>shown with cause · not counted as an attempt"]
+        TEACH["teach-back<br/>graded 0–5 vs rubric · cheap model"]
+        PASS["next slice unlocks<br/>weak concepts → card if none"]
+        FLAGB["ramp flag-bridge<br/>a bridge misled you · stored + exported"]
+        TODAY --> CARDS --> CODE --> SUBMIT --> RUN --> REVIEWER --> LINT
+        LINT -->|"violation → regenerate max 2<br/>then generic fallback"| REVIEWER
+        LINT -->|"clean"| VERDICT
+        VERDICT -->|"needs_work — hint locates,<br/>never fixes"| CODE
+        VERDICT -->|"blocked"| BLOCKED
+        BLOCKED -.->|"fix the cause · resubmit"| SUBMIT
+        CODE -.->|"bridge misled you"| FLAGB
+        VERDICT -->|"pass"| TEACH
+        TEACH -->|"grade ≤ 2 → card created if none"| PASS
+        TEACH -->|"grade ≥ 3"| PASS
+    end
+
+%% ── retention ──
+    subgraph RETAIN["RETENTION — FSRS spaced repetition"]
+        FSRS[("card store<br/>py-fsrs forgetting-edge scheduler")]
+    end
+    REVIEWER ==>|"weak concept:<br/>rated < 3 → card if none"| FSRS
+    CARDS ==>|"answers reschedule cards"| FSRS
+    FSRS -.->|"cards due resurface<br/>interleaved in future sessions"| TODAY
+
+%% ── parked ──
+    PARKED[/"PARKED (OD-15): level exam + earned store<br/>revival design in manifest §10"/]
+    PASS -.->|"after the last practice slice<br/>(nothing is recorded as earned in the MVP)"| PARKED
+
+%% ── offline ──
+    OFFLINE[/"offline: tests still run<br/>reviews queue — degraded, never corrupt"/]
+    REVIEWER -.-> OFFLINE
+    OFFLINE -.->|"drained at the start of every today / submit"| REVIEWER
+
+%% ── wiring across phases ──
+    KNOWN -.->|"me = bridge fuel"| CLAIMS
+    CURR -->|"slice N"| TODAY
+
+%% ── ground rules: legend only — no decorative edges ──
+    subgraph RULES["GROUND RULES — constitutional (legend)"]
+        direction LR
+        R1["never writes your code<br/>hints locate, never fix"]
+        R2["deterministic where it counts<br/>LLMs propose · tools apply"]
+        R3["local-first ~/.ramp, git-backed<br/>swappable per-role endpoints"]
+        R4["the gym principle:<br/>practice loop, not engagement<br/>discipline is the learner's"]
+    end
+
+    style CODE fill:#e8f2ff,stroke:#2b6cb0,stroke-width:2px
+    style REVIEWER fill:#fff4e5,stroke:#e8590c
+    style GENCHK fill:#e9f7ec,stroke:#2f9e44,stroke-width:2px
+    style PARKED fill:#f1f3f5,stroke:#868e96,stroke-dasharray: 5 5
+    style STOP fill:#ffe3e3,stroke:#c92a2a
