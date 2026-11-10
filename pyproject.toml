@@ -11,6 +11,8 @@ dependencies = [
     "pydantic",
     "pydantic-ai",
     "fsrs",
+    "pytest",
+    "pyyaml",
 ]
 
 [project.scripts]
@@ -24,7 +26,7 @@ build-backend = "hatchling.build"
 packages = ["src/ramp"]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "pyyaml"]
+dev = ["ruff"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

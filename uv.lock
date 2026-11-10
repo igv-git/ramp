@@ -1224,14 +1224,14 @@ dependencies = [
     { name = "fsrs" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
+    { name = "pytest" },
+    { name = "pyyaml" },
     { name = "rich" },
     { name = "typer" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "pytest" },
-    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
@@ -1240,16 +1240,14 @@ requires-dist = [
     { name = "fsrs" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
+    { name = "pytest" },
+    { name = "pyyaml" },
     { name = "rich" },
     { name = "typer" },
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "pytest" },
-    { name = "pyyaml" },
-    { name = "ruff" },
-]
+dev = [{ name = "ruff" }]
 
 [[package]]
 name = "referencing"
