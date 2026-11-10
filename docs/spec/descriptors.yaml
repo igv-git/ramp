@@ -6,13 +6,18 @@
 # approved law (the W1 gate "init on python -> sane curriculum" needs real text).
 
 _meta:
-  status: mock            # mock | approved
-  note: placeholder text adapted from the v1.0 manifest (section 3.4); not reviewed as law
+  status: approved            # mock | approved
 
 python:
   1: >-
-    Reads Python: variables, control flow, basic data structures; modifies an
-    existing script with guidance; cannot start a project alone.
+    Reads Python: variables, control flow, basic data structures (lists, dicts,
+    tuples, sets), and file I/O. Modifies an existing script to a stated
+    behavior when told what to change; writes a short single-file script that
+    reads input, transforms it, and prints output. Cannot structure a project
+    alone.
   2: >-
-    Ships a small tested program alone: idiomatic functions, comprehensions,
-    exceptions, argparse CLIs, a pytest suite, packaging via pyproject.
+    Ships a small tested program alone: idiomatic functions and comprehensions;
+    exceptions with EAFP handling of messy input; a CLI that accepts arguments
+    and flags (argparse); a pytest suite with fixtures; packaging via pyproject,
+    installable and runnable with uv; reads and fixes someone else's script
+    against provided tests.
