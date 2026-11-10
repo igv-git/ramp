@@ -30,4 +30,12 @@ Each decision: Decision · Rationale · Alternatives. Facts marked (verified) we
 
 **D14. Law location at runtime.** `~/.ramp/descriptors.yaml` and `claims.yaml` (copied by the owner from `docs/spec/`; not packaged). `RAMP_HOME` overrides the home for tests.
 
+**D16. Shared leaf utilities (owner decision, option A).** `ramp/paths.py`, `ramp/config.py`, `ramp/models.py` are shared leaf code, not modules: they import no sqlite3, subprocess or network library (checked by `tests/test_invariants.py`). They exist because models, config and paths are needed by several modules and no listed module can own them without breaking an import rule. Manifest §4.1 should gain one line (owner edit): "Shared leaf utilities (not modules): models, config, paths — no I/O beyond files."
+
+**D17. Card question/rubric.** Stored on `cards`. Created from a deterministic template (no LLM call, works offline); upgraded once by `grader.make_card_prompt` when the provider is reachable. Alternative (generate at `today`) rejected: nondeterministic and costs a call per card per day.
+
+**D18. Model-authored files.** `Slice.files` keys are validated (no `..`, absolute, backslash, NUL; allowed prefixes) and the scaffold writer re-checks the resolved path and refuses symlinks; the write is reachable only through `gate.apply_slice` (Art. IV: model output reaches disk only via a validated gate call).
+
+**D19. Composition root.** `cli/wiring.py::make_context` builds config, store, `StoreLedger` (store-side, structural `SpendLedger`) and the OpenRouter `LLMPort`; tests override it with `FakeLLM`. `providers` never imports `store`.
+
 **D15. Costs.** Cost meter = tokens × per-model USD/Mtok from config (OpenRouter returns usage; pricing is config, not fetched). Caps: per command and per day (day total in `meta`). Exceeding aborts the command; state persists.

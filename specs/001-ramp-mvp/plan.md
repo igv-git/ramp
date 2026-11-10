@@ -27,7 +27,7 @@ A one-shot Python CLI (`ramp`) with five commands over a local `~/.ramp` home. L
 | I | Output models carry no code fields (`extra="forbid"`, hint max 280 chars); leak lint in CI against a labeled eval set | pass |
 | II | No MVP path writes an earned level; no earned-store module or table exists | pass |
 | III | `matrix` refuses mock descriptors; unknown-skill drafts are frozen only after explicit user approval with a stamp; existing skill entries are never overwritten | pass |
-| IV | Pass rule, FSRS grade map, allowlist, thresholds are pure functions in `gate`/`review`/`runner`; models only produce data | pass |
+| IV | Pass rule, FSRS grade map, allowlist, thresholds are pure functions in `gate`/`review`/`runner`; models only produce data; model-authored slice files reach disk only via `gate.apply_slice` after key/path validation (research D18) | pass |
 | V | Human commits limited to law/config/holdout/gates; holdout is human-committed | pass (process) |
 | VI | Each run is test-first (tasks list the test before the code); holdout log append-only | pass |
 | VII | No orchestration framework; `loop` is a plain function sequencer; Pydantic AI is used only as a typed-call library inside `providers`; one new dep beyond manifest (`pyyaml`) justified | pass |
@@ -76,7 +76,7 @@ tests/
 ├── unit/  ├── integration/  ├── eval/ (leak_eval.jsonl)  └── holdout/  (human-committed)
 ```
 
-**Structure Decision**: Single project, src layout, the 11 manifest modules as packages. The import invariants stay enforced by `tests/test_invariants.py`; one addition: `agents/` and `gate/` must not import `providers` internals (they receive an `LLMPort` protocol), keeping agents testable with `FakeLLM`.
+**Structure Decision**: Single project, src layout, the 11 manifest modules as packages, plus three shared leaf utilities that are not modules — `paths.py`, `config.py`, `models.py` (owner-approved, research D16; the manifest §4.1 note is an owner edit). The import invariants stay enforced by `tests/test_invariants.py`; one addition: `agents/` and `gate/` must not import `providers` internals (they receive an `LLMPort` protocol), keeping agents testable with `FakeLLM`.
 
 ## Pinned decisions (summary — detail in linked files)
 
@@ -98,19 +98,20 @@ tests/
 
 | Run | Day | Scope | Done when |
 |---|---|---|---|
-| R1 Foundations | 1–2 | `RAMP_HOME` paths; config load + validation; Pydantic models; store schema + repos; runtime deps (pytest, pyyaml); contract tests | unit tests green; invariants green |
-| R2 Law + providers | 2 | matrix (descriptors/claims loader, mock guard); providers (OpenRouter, retries, caps, cost meter, offline classification, `FakeLLM`); `LLMPort` | fake-driven agent calls work |
+| R1 Foundations | 1–2 | `RAMP_HOME` paths; config load + validation; Pydantic models (safe file keys, `CardPrompt`); store schema + repos; runtime deps (pytest, pyyaml); invariants incl. who may import `store`/`plan.scaffold` | unit tests green; invariants green |
+| R2 Law + providers + wiring | 2 | matrix (descriptors/claims loader, mock guard); providers (OpenRouter, retries, caps, cost meter, offline classification, `FakeLLM`); `LLMPort`; default config; `StoreLedger` + `cli/wiring.py` composition root; FSRS wrapper (`review`) | fake-driven agent calls work; no real network in tests |
 | R3 Runner | 3 | allowlist; `run_argv` (stripped env, 30 s, no shell); fingerprint; git helper; generation-time check | allowlist + gen-check tests green |
-| R4 Planning | 3–4 | planner (eligibility + curriculum), writer (slice + scaffold), plan.json, hours sizing, `ramp init` for known skill | init on python produces curriculum offline via fake; live smoke by owner |
-| R5 Loop core | 4–5 | reviewer, leak lint + eval set, gate pass rule, verdict state machine, `today` (brief), `submit`, concept ratings, weak→card creation | **Gate A**: sane curriculum, scripted init→today→submit→verdict; hours measured; pass-rule holdout committed by human |
-| R6 Retention | 6 | review (fsrs), grader, cards-first `today`, teach-back, grade apply | cards due-first; ≥2 weak concepts resurface in a scripted run |
+| R4 Planning | 3–4 | planner (eligibility + curriculum, claims → bridge depth), writer, `plan.json`, `gate.apply_slice`/`apply_plan`, hours sizing, `ramp init` for known skill, opt-in live smoke test | init on python via fake; **live smoke runnable by the owner before Gate A** |
+| R5 Loop core | 4–5 | reviewer, workspace diff (`plan.diff`), leak lint + eval set, gate pass rule, verdict state machine, `today` (brief), `submit`, concept ratings, weak→card creation (template question/rubric), `hints_used` | **Gate A**: sane curriculum, scripted init→today→submit→verdict; hours measured; pass-rule holdout committed by human |
+| R6 Retention | 6 | grader (`grade_card`, `grade_teachback`, `make_card_prompt`), cards-first `today`, teach-back, grade apply | cards due-first; ≥2 weak concepts resurface in a scripted run |
 | R7 Resilience + export | 7 am | offline queue + drain, blocked path, `export` + auto-export, `flag-bridge`, counts printout | scripted offline/blocked/export runs green |
-| R8 Unknown skill + hardening | 7 pm | unknown-skill init (draft→approve→freeze), cost-cap abort, retries/fallbacks, README honesty text, lint zero on eval set | **Gate B**; then dogfood days 8–10 |
+| R8 Unknown skill + hardening | 7 pm | unknown-skill init (draft→approve→freeze), cost-cap abort, Ctrl-C leaves state consistent, retries/fallbacks, README, lint zero on eval set | **Gate B**; then dogfood days 8–10 |
 
 Slip rule (manifest §7.3): shorten hardening first; reserve cut list in `critic.md` needs explicit owner approval.
 
 ## Open items for the owner (not decisions for agents)
 
 1. Replace placeholder OpenRouter model ids in `config.toml` with ones available to you (contracts/config.toml.md uses placeholders; **ids unverified**).
-2. Copy approved law into the runtime home: `cp docs/spec/descriptors.yaml docs/spec/claims.yaml ~/.ramp/` (quickstart step 2). `descriptors.yaml` must have `_meta.status: approved` (currently edited in the working tree, uncommitted).
+2. Copy approved law into the runtime home: `cp docs/spec/descriptors.yaml docs/spec/claims.yaml ~/.ramp/` (quickstart step 2). `descriptors.yaml` must have `_meta.status: approved` (done, committed as `eda9509`).
 3. Write the pass-rule holdout (human-committed under `tests/holdout/`) before R5 ends.
+4. Add the one-line shared-utilities note to manifest §4.1 (research D16) — law file, owner edit.

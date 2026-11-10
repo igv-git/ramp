@@ -28,7 +28,9 @@ class Slice(BaseModel):          # writer output (shipped form)
     est_minutes: int             # sizing vs honest hours
     prerequisites: list[str] = []# surfaced, never assumed
     files: dict[str, str]        # relpath -> content for tests/fixtures/expected + empty scaffold stubs
-                                 #   (writer-authored TESTS only; paths must start with tests/|fixtures/|expected/|src/)
+                                 #   (writer-authored TESTS only; keys must start with tests/|fixtures/|expected/|src/ and must not contain
+                                 #    '..' parts, a leading '/', a backslash or NUL; the scaffold writer re-checks the resolved path is
+                                 #    inside the workspace and never writes through symlinks)
     status: Literal["locked","current","passed"] = "locked"   # mirrored from slice_state, not authoritative in plan.json
 
 class Issue(BaseModel):
@@ -53,6 +55,10 @@ class ReviewerOutput(BaseModel):
 class GraderOutput(BaseModel):   # used for cards and teach-back
     grade: int                   # 0..5
     rationale: str               # <= 300 chars
+
+class CardPrompt(BaseModel):     # question + rubric for a review card
+    question: str                # <= 300 chars, no code fences
+    rubric: str                  # <= 500 chars, no code fences
 
 class EligibilityResult(BaseModel):
     eligible: bool
@@ -100,6 +106,7 @@ CREATE TABLE cards(
   concept_id TEXT NOT NULL REFERENCES concepts(id),
   card_json TEXT NOT NULL,                -- fsrs Card.to_dict()
   due TEXT NOT NULL,                      -- ISO UTC, indexed
+  question TEXT NOT NULL, rubric TEXT NOT NULL,           -- template at creation; replaced by grader.make_card_prompt when reachable
   created_at TEXT NOT NULL, created_reason TEXT NOT NULL);   -- 'weak_review' | 'weak_teachback'
 CREATE INDEX idx_cards_due ON cards(due);
 CREATE TABLE card_reviews(
@@ -113,7 +120,7 @@ CREATE TABLE attempts(
   id INTEGER PRIMARY KEY, slice_id TEXT NOT NULL, ts TEXT NOT NULL,
   test_output TEXT NOT NULL, diff TEXT NOT NULL,         -- diff vs scaffold (egress content, also queue payload)
   review_json TEXT,                                      -- ReviewerOutput (NULL while pending/blocked)
-  hints_used INTEGER NOT NULL DEFAULT 0,
+  hints_used INTEGER NOT NULL DEFAULT 0,                 -- number of issues/hints shown to the learner for this attempt
   passed INTEGER CHECK(passed IN (0,1)),                 -- NULL when blocked / pending
   status TEXT NOT NULL CHECK(status IN('reviewed','pending_review','blocked')),
   verdict TEXT CHECK(verdict IN('pass','needs_work')),
@@ -132,6 +139,8 @@ No `strength`, no `attempts` counter on concepts, no earned-levels table (parked
 **Attempt**: `submit` → `blocked` (cause) | `pending_review` | `reviewed(verdict)`. A later `submit` supersedes a blocked attempt (kept as history). A `pending_review` attempt is finished by the drain (→ `reviewed`), never re-run.
 
 **Slice**: `locked → current → passed`; only `gate` (after a pass and teach-back stored) moves `current → passed` and the next `locked → current`.
+
+**Card prompt**: `question`/`rubric` start as a deterministic template (`"Explain <concept name> in your own words and compare it with <bridge_note>."` / rubric lines from the bridge note) so card creation never needs the network; when the provider is reachable `gate` upgrades them once with `grader.make_card_prompt`.
 
 **Card**: created by `gate` (`weak_review`, `weak_teachback`) if the concept has none; rescheduled only by `gate.apply_grade` on its own review.
 

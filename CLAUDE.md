@@ -10,7 +10,8 @@ Spec-driven MVP. Product code is authored by agents; the human authors law and a
 ## Rules
 - If a task conflicts with the constitution or a locked decision: stop and surface it; never resolve it silently.
 - Do not edit `docs/spec/*` (law files: constitution, descriptors.yaml, claims.yaml) — the owner does.
-- Import invariants (enforced by `tests/test_invariants.py`): sqlite only in `store`; network only in `providers`; subprocess only in `runner`; `agents` never import `store`; LLM-derived writes only via `gate`; no path writes earned levels.
+- Import invariants (enforced by `tests/test_invariants.py`): sqlite only in `store`; network only in `providers`; subprocess only in `runner`; `agents`, `providers`, `runner`, `lint`, `matrix` never import `store`; only `gate` imports `plan.scaffold`. By design, not machine-checked: LLM-derived writes only via `gate`; no path writes earned levels.
+- Shared leaf utilities `paths.py`, `config.py`, `models.py` are not modules (no sqlite/subprocess/network).
 - Anti-goal: ramp never writes code for its learner; schemas carry no code fields.
 - Parked, do NOT build (keep extension points): chat, notes-search/ingestion, stats, level exam/earned store, streaks/nudges/any retention mechanic.
 - Simplicity is law (Art. IX): stdlib first; no new dependency without a failed stdlib check; no orchestration framework.
