@@ -29,9 +29,9 @@ def claims_path() -> Path:
     return home() / "claims.yaml"
 
 
-def plan_path(skill: str) -> Path:
-    return home() / "stacks" / skill / "plan.json"
+def plan_path(skill: str, base: Path | None = None) -> Path:
+    return (base or home()) / "stacks" / skill / "plan.json"
 
 
-def slice_dir(index: int) -> Path:
-    return home() / "slices" / f"{index:02d}"
+def slice_dir(index: int, base: Path | None = None) -> Path:
+    return (base or home()) / "slices" / f"{index:02d}"

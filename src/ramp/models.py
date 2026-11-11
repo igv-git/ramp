@@ -149,6 +149,41 @@ class ConceptDef(_Strict):
     bridge_note: str = ""
 
 
+class SliceOutline(_Strict):
+    """Planner output for one slice; the writer expands it into a full Slice."""
+
+    id: str
+    index: int = Field(ge=1)
+    title: str
+    concepts: list[str]
+    est_minutes: int = Field(gt=0)
+    prerequisites: list[str] = []
+    focus: str = Field(max_length=300)  # what the learner builds, one plain sentence, no code
+
+
+class PlanOutline(_Strict):
+    concepts: list[ConceptDef]
+    cando_map: list[CandoMap]
+    slices: list[SliceOutline]
+
+    @model_validator(mode="after")
+    def _consistent(self):
+        known = {c.id for c in self.concepts}
+        if not self.slices:
+            raise ValueError("a plan needs at least one slice")
+        if len({s.id for s in self.slices}) != len(self.slices):
+            raise ValueError("slice ids must be unique")
+        if [s.index for s in self.slices] != list(range(1, len(self.slices) + 1)):
+            raise ValueError("slice indexes must be 1..n in order")
+        for s in self.slices:
+            if set(s.concepts) - known:
+                raise ValueError(f"slice {s.id} uses unknown concepts: {sorted(set(s.concepts) - known)}")
+        for c in self.cando_map:
+            if set(c.concepts) - known:
+                raise ValueError(f"can-do {c.cando!r} maps to unknown concepts")
+        return self
+
+
 class Plan(_Strict):
     skill: str
     target_level: int

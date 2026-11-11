@@ -116,3 +116,22 @@ def test_plan_fits_hours():
     make_plan(est=60, hours=1.0, days=1)
     with pytest.raises(ValidationError):
         make_plan(est=61, hours=1.0, days=1)
+
+
+def test_plan_outline_validation():
+    ok = {
+        "concepts": [m.ConceptDef(id="c", name="C")], "cando_map": [m.CandoMap(cando="x", concepts=["c"])],
+        "slices": [m.SliceOutline(id="S1", index=1, title="t", concepts=["c"], est_minutes=10, focus="f")],
+    }
+    m.PlanOutline(**ok)
+    with pytest.raises(ValidationError):  # unknown concept in a slice
+        m.PlanOutline(**{**ok, "slices": [m.SliceOutline(id="S1", index=1, title="t", concepts=["zzz"],
+                                                         est_minutes=10, focus="f")]})
+    with pytest.raises(ValidationError):  # unknown concept in the cando map
+        m.PlanOutline(**{**ok, "cando_map": [m.CandoMap(cando="x", concepts=["zzz"])]})
+    dup = m.SliceOutline(id="S1", index=1, title="t", concepts=["c"], est_minutes=10, focus="f")
+    with pytest.raises(ValidationError):  # duplicate id
+        m.PlanOutline(**{**ok, "slices": [dup, dup]})
+    gap = m.SliceOutline(id="S3", index=3, title="t", concepts=["c"], est_minutes=10, focus="f")
+    with pytest.raises(ValidationError):  # indexes must be 1..n
+        m.PlanOutline(**{**ok, "slices": [dup, gap]})

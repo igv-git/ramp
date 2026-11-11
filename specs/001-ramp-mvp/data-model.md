@@ -73,6 +73,13 @@ class CandoMap(BaseModel):
     cando: str
     concepts: list[str]
 
+class SliceOutline(BaseModel):   # planner output for one slice; the writer expands it into a Slice
+    id: str; index: int; title: str; concepts: list[str]; est_minutes: int
+    prerequisites: list[str] = []; focus: str   # <= 300 chars, no code
+
+class PlanOutline(BaseModel):    # planner output; validated: unique ids, indexes 1..n, known concepts only
+    concepts: list[ConceptDef]; cando_map: list[CandoMap]; slices: list[SliceOutline]
+
 class Plan(BaseModel):           # stacks/<skill>/plan.json (immutable after init)
     skill: str; target_level: int; known: dict[str,int]
     hours_per_day: float; days: int; deadline: str | None; goals: list[str]

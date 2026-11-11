@@ -36,3 +36,9 @@ def make_context(home: Path | None = None, llm: LLMPort | None = None) -> Contex
         meter = CostMeter(StoreLedger(store), config.caps)
         llm = ProviderClient(config, meter, OpenRouterTransport())
     return Context(home=home, config=config, store=store, llm=llm)
+
+
+def context_from(typer_ctx, home: Path | None = None) -> Context:
+    """Build the context for a command. Tests inject a FakeLLM through `invoke(app, ..., obj={"llm": fake})`."""
+    obj = getattr(typer_ctx, "obj", None) or {}
+    return make_context(home, llm=obj.get("llm"))
