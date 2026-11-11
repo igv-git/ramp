@@ -84,3 +84,42 @@ def load_config(path: Path) -> Config:
         return Config.model_validate(data)
     except ValidationError as e:
         raise ConfigError(f"invalid {path}: {e}") from e
+
+
+def default_toml() -> str:
+    """Default config.toml. Contains no secrets: the API key lives in the named environment variable."""
+
+    def role(model: str, max_in: int, max_out: int) -> str:
+        return (
+            'base_url = "https://openrouter.ai/api/v1"\n'
+            'api_key_env = "OPENROUTER_API_KEY"\n'
+            f'model = "{model}"\n'
+            f"max_input_tokens = {max_in}\n"
+            f"max_output_tokens = {max_out}\n"
+            "usd_per_mtok_in = 0.0\n"
+            "usd_per_mtok_out = 0.0\n"
+        )
+
+    return (
+        "# ramp configuration. Set the four `model` ids (and prices for the cost meter).\n"
+        "# The API key is read from the environment variable named by api_key_env.\n"
+        "schema_version = 1\n\n"
+        "[gate]\npass_threshold = 3\n\n"
+        "[caps]\n"
+        "max_cost_usd_per_command = 0.50\nmax_cost_usd_per_day = 3.00\n"
+        "max_regenerations = 2\nmax_retries = 2\n\n"
+        f"[roles.planner]  # strong\n{role(PLACEHOLDER, 24000, 6000)}\n"
+        f"[roles.writer]  # strong\n{role(PLACEHOLDER, 24000, 8000)}\n"
+        f"[roles.reviewer]  # must differ from the writer\n{role(PLACEHOLDER + '_DIFFERENT', 24000, 3000)}\n"
+        f"[roles.grader]  # cheap\n{role(PLACEHOLDER + '_CHEAP', 6000, 600)}"
+    )
+
+
+def write_default(home: Path) -> Path:
+    """Write the default config unless one exists; returns its path."""
+    home = Path(home)
+    home.mkdir(parents=True, exist_ok=True)
+    path = home / "config.toml"
+    if not path.exists():
+        path.write_text(default_toml())
+    return path
