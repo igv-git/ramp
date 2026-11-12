@@ -26,6 +26,9 @@ def test_check_eligibility_uses_planner_role_and_returns_model():
     assert llm.calls[0].role == "planner"
     assert "Writes a CLI." in llm.calls[0].user
     assert "local command" in llm.calls[0].system and "minute" in llm.calls[0].system
+    sys_prompt = llm.calls[0].system.lower()
+    assert "no network" not in sys_prompt and "offline" not in sys_prompt  # the spec does not forbid the network
+    assert "package index" in sys_prompt and "accounts" in sys_prompt
 
 
 def test_plan_sets_bridge_depth_from_claims_not_levels():
@@ -71,7 +74,8 @@ def test_write_slice_prompt_states_the_writer_contract():
     llm = FakeLLM({"writer": [b.slice_for(1)]})
     writer.write_slice(llm, b.outline().slices[0], skill="python", known=KNOWN, concepts=b.outline().concepts)
     s = llm.calls[0].system.lower()
-    for phrase in ("inside the test", "stub", "never write", "breaks_down_at", "argv"):
+    for phrase in ("inside the test", "stub", "never write", "breaks_down_at", "argv", "files", "test_*.py",
+                   "without test files"):
         assert phrase in s, phrase
 
 

@@ -25,6 +25,14 @@ class GenCheckResult:
     runs: list = field(default_factory=list)
 
 
+def _has_test_files(workspace: Path) -> bool:
+    tests = workspace / "tests"
+    if not tests.is_dir():
+        return False
+    return any(p.is_file() and (p.name.startswith("test_") or p.name.endswith("_test.py"))
+               for p in tests.rglob("*.py"))
+
+
 def _count_collected(output: str) -> int:
     m = _COLLECTED_RE.search(output)
     if m:
@@ -64,6 +72,10 @@ def _check(workspace: Path, commands: list[list[str]]) -> GenCheckResult:
     except AllowlistViolation as e:
         return GenCheckResult(False, f"allowlist: {e}")
 
+    if not _has_test_files(workspace):
+        return GenCheckResult(False, "the slice has no test files: put the complete text of each test in "
+                                     "`files` under tests/, named test_*.py or *_test.py (pytest only "
+                                     "collects those names)")
     pytest_cmds = [v for v in valid if v.kind == "test"]
     if not pytest_cmds:
         return GenCheckResult(False, "no pytest command in acceptance; tests must be runnable by pytest")

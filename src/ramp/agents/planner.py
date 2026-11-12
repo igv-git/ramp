@@ -13,8 +13,11 @@ class PlanningError(Exception):
 _ELIGIBILITY_SYSTEM = (
     "You judge whether a skill level can be taught through hands-on exercises that a local command can check. "
     "Split the level descriptor into its individual can-dos. For each can-do decide whether a local command "
-    "(running tests or a program) can verify it within about a minute, with no network, accounts or special "
-    "hardware. Set eligible=true only if EVERY can-do is checkable. Give short reasons for any that are not."
+    "(running tests or a program) can verify it within about a minute on the learner's own machine. Using the "
+    "network only to download packages or build tools from a public package index (for example uv or pip "
+    "fetching a build backend) is fine. A can-do is NOT checkable if it needs accounts, paid or private "
+    "services, special hardware, or a person to judge the result. "
+    "Set eligible=true only if EVERY can-do is checkable. Give short reasons for any that are not."
 )
 
 _PLAN_SYSTEM = (

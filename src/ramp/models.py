@@ -80,6 +80,9 @@ class Slice(_Strict):
     def _files(cls, v: dict[str, str]):
         for key in v:
             _safe_file_key(key)
+        if not any(k.startswith("tests/") and k.endswith(".py") for k in v):
+            raise ValueError("files must include at least one test file under tests/ "
+                             "(named test_*.py or *_test.py), with its complete text")
         return v
 
 

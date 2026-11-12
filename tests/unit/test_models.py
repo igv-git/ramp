@@ -39,7 +39,15 @@ def test_acceptance_non_empty():
 
 @pytest.mark.parametrize("key", ["tests/a.py", "fixtures/in.txt", "expected/out.txt", "src/pkg/m.py"])
 def test_file_keys_allowed(key):
-    make_slice(files={key: "x"})
+    make_slice(files={"tests/test_a.py": "x", key: "x"})
+
+
+def test_a_slice_must_ship_at_least_one_test_file():
+    for files in ({}, {"fixtures/in.txt": "x"}, {"src/m.py": "x"}, {"tests/data.txt": "x"}):
+        with pytest.raises(ValidationError, match="test"):
+            make_slice(files=files)
+    make_slice(files={"tests/test_a.py": "x"})
+    make_slice(files={"tests/sub/a_test.py": "x"})
 
 
 @pytest.mark.parametrize(

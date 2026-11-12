@@ -85,3 +85,19 @@ def test_working_tree_not_modified_by_check(sdir):
     before = sorted(p.name for p in (sdir / "workspace").rglob("*.py"))
     gencheck.generation_time_check(sdir, make_slice())
     assert sorted(p.name for p in (sdir / "workspace").rglob("*.py")) == before
+
+
+def test_no_test_files_gives_a_specific_reason(sdir):
+    r = gencheck.generation_time_check(sdir, make_slice())
+    assert not r.ok and "no test files" in r.reason and "test_*.py" in r.reason
+
+
+def test_badly_named_test_file_is_called_out(sdir):
+    write_test(sdir, GOOD, name="wordcount_spec.py")
+    r = gencheck.generation_time_check(sdir, make_slice())
+    assert not r.ok and "no test files" in r.reason
+
+
+def test_accepts_the_underscore_test_suffix(sdir):
+    write_test(sdir, GOOD, name="wc_test.py")
+    assert gencheck.generation_time_check(sdir, make_slice()).ok
