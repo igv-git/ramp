@@ -53,3 +53,11 @@ def test_output_schema_has_no_code_fields():
     assert not forbidden & set(ReviewerOutput.model_fields)
     with pytest.raises(Exception):  # noqa: B017
         ReviewerOutput.model_validate({**b.review_out().model_dump(), "patch": "x"})
+
+
+def test_layout_notes_reach_the_reviewer_prompt():
+    llm = FakeLLM({"reviewer": [b.review_out()]})
+    reviewer.review_attempt(llm, brief="b", diff="", test_output="t", concepts=b.outline().concepts[:1],
+                            layout_notes=["workspace/hello_app/ sits outside workspace/src"])
+    assert "workspace/hello_app/ sits outside workspace/src" in llm.calls[0].user
+    assert "layout notes" in llm.calls[0].system.lower()

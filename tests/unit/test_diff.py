@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 from ramp.plan import diff as pdiff
@@ -54,3 +56,28 @@ def test_deterministic_file_order(sd):
         put(sd, "workspace", f"pkg/{n}", "1\n")
     out = pdiff.workspace_diff(sd)
     assert out.index("a.py") < out.index("b.py") < out.index("c.py")
+
+
+def test_layout_notes_empty_when_laid_out_correctly(sd):
+    put(sd, "scaffold", "pkg/a.py", "")
+    put(sd, "workspace", "pkg/a.py", "x = 1\n")
+    (sd / "workspace" / "tests").mkdir()
+    (sd / "workspace" / ".pytest_cache").mkdir()
+    assert pdiff.layout_notes(sd) == []
+
+
+def test_layout_notes_report_missing_src_and_stray_project(sd):
+    put(sd, "scaffold", "pkg/a.py", "")
+    shutil.rmtree(sd / "workspace" / "src")
+    (sd / "workspace" / "hello_app" / "src").mkdir(parents=True)
+    notes = pdiff.layout_notes(sd)
+    assert any("workspace/src does not exist" in n for n in notes)
+    assert any("workspace/hello_app/ sits outside workspace/src" in n for n in notes)
+
+
+def test_layout_notes_report_missing_starter_files(sd):
+    put(sd, "scaffold", "pkg/a.py", "")
+    put(sd, "scaffold", "pkg/b.py", "")
+    put(sd, "workspace", "pkg/a.py", "x = 1\n")
+    notes = pdiff.layout_notes(sd)
+    assert notes == ["These starter files are missing from workspace/src: pkg/b.py."]

@@ -111,6 +111,7 @@ If a failure is not your code's fault (a broken generated test, a timeout, a pro
       tests/           the checks (you can read them)
       fixtures/        inputs
       expected/        expected outputs
+    scaffold/src/      frozen copy of the starting src/; do not edit. ramp diffs your work against it
     gencheck.log       the pre-flight check log for this slice
   profile.db           your progress (not in git)
   exports/             plain-text snapshots (planned)

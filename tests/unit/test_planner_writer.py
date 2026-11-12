@@ -98,3 +98,9 @@ def test_the_model_cannot_return_a_draft_without_tests():
 
     with pytest.raises(ValidationError):
         b.draft_for(1).model_validate({**b.draft_for(1).model_dump(), "tests": []})
+
+
+def test_writer_prompt_forbids_creating_a_project_inside_the_workspace():
+    from ramp.agents import writer
+    s = writer._SYSTEM.lower()
+    assert "never tell them to create a project" in s and "uv init" in s and "outside the workspace" in s

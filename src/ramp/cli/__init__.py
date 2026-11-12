@@ -121,6 +121,8 @@ def submit_cmd(ctx: typer.Context) -> None:
     for argv, code in out.commands:
         state = "ok" if code == 0 else "timed out / not started" if code is None else f"exit {code}"
         console.print(Text(f"  {' '.join(argv)}  ->  {state}"))
+    for note in out.layout_notes:
+        console.print(Text(f"Layout: {note}", style="yellow"))
     if out.fingerprint_changed:
         console.print(Text("Note: the test or fixture files differ from the shipped ones (logged, not blocked)."))
     if out.status == "blocked":

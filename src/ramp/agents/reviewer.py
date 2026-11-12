@@ -13,12 +13,16 @@ _SYSTEM = (
     "Set leaked_solution=true only if the exercise's solution appears to be copied in from elsewhere. Add one "
     "understanding_check question that probes the learner's own reasoning. Your verdict is advisory; a separate "
     "tool decides. If the tests fail, issues must explain where the failures come from; if they pass, issues "
-    "may be empty."
+    "may be empty.\n"
+    "If the input lists workspace layout notes, the learner's files are not where the tests look. Make the first "
+    "issue about that: its location is the path the note names, and its symptom says the tests and diff cannot see "
+    "the code there. Do not blame the environment or the interpreter for it, and rate concepts only on what you "
+    "can actually see."
 )
 
 
 def review_attempt(llm: LLM, *, brief: str, diff: str, test_output: str, concepts: list[ConceptDef],
-                   feedback: str | None = None) -> ReviewerOutput:
+                   feedback: str | None = None, layout_notes: list[str] | None = None) -> ReviewerOutput:
     concept_lines = "\n".join(f"- {c.id}: {c.name}" for c in concepts)
     parts = [
         f"Exercise brief:\n{brief}",
@@ -26,6 +30,8 @@ def review_attempt(llm: LLM, *, brief: str, diff: str, test_output: str, concept
         f"Learner's changes (unified diff against the empty scaffold):\n{diff or '(no changes yet)'}",
         f"Test output:\n{test_output}",
     ]
+    if layout_notes:
+        parts.append("Workspace layout notes (facts checked by the tool):\n" + "\n".join(f"- {n}" for n in layout_notes))
     if feedback:
         parts.append(f"Your previous answer was rejected: {feedback}. Locate problems only; do not suggest fixes.")
     return llm.complete("reviewer", _SYSTEM, "\n\n".join(parts), ReviewerOutput)

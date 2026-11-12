@@ -13,7 +13,7 @@ from ramp.agents import reviewer
 from ramp.lint.leak import check_hint, check_text, fallback_hint
 from ramp.loop.today_flow import current_slice
 from ramp.models import Issue, ReviewerOutput
-from ramp.plan.diff import workspace_diff
+from ramp.plan.diff import layout_notes, workspace_diff
 from ramp.providers.port import ProviderError
 from ramp.runner import exec as rexec
 from ramp.runner.allowlist import AllowlistViolation, validate_all
@@ -42,6 +42,7 @@ class SubmitOutcome:
     commands: list[tuple[list[str], int | None]] = field(default_factory=list)
     fingerprint_changed: bool = False
     understanding_check: str = ""
+    layout_notes: list[str] = field(default_factory=list)
 
 
 def classify_run(results: list, shipped_fp: str, attempt_fp: str) -> tuple[str, str | None]:
@@ -96,11 +97,11 @@ def _sanitize(out: ReviewerOutput) -> ReviewerOutput:
         "issues": issues, "understanding_check": check, "concept_ratings": ratings}).model_dump())
 
 
-def _review_with_lint(ctx, *, brief, diff, test_output, concepts) -> ReviewerOutput:
+def _review_with_lint(ctx, *, brief, diff, test_output, concepts, layout_notes=None) -> ReviewerOutput:
     feedback, out = None, None
     for _ in range(1 + ctx.config.caps.max_regenerations):
         out = reviewer.review_attempt(ctx.llm, brief=brief, diff=diff, test_output=test_output,
-                                      concepts=concepts, feedback=feedback)
+                                      concepts=concepts, feedback=feedback, layout_notes=layout_notes)
         bad = _violations(out)
         if not bad:
             return out
@@ -120,6 +121,7 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
     attempt_fp = fingerprint(argvs, workspace)
     changed = int(attempt_fp != shipped)
     diff = workspace_diff(slice_dir)
+    notes = layout_notes(slice_dir)
 
     def stored(output: str, status: str, cause: str | None = None) -> int:
         return store.add_attempt(slice_id=slice_.id, ts=clock().isoformat(), test_output=output, diff=diff,
@@ -129,7 +131,7 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
     def blocked(output: str, cause: str, results: list) -> SubmitOutcome:
         aid = stored(output, "blocked", cause)
         return SubmitOutcome("blocked", aid, blocked_cause=cause, fingerprint_changed=bool(changed),
-                             commands=[(r.argv, r.exit_code) for r in results])
+                             commands=[(r.argv, r.exit_code) for r in results], layout_notes=notes)
 
     try:
         valid = validate_all(argvs, workspace)
@@ -144,16 +146,18 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
     attempt_id = stored(output, "pending_review")
     concepts = [c for c in plan.concepts if c.id in slice_.concepts]
     try:
-        review = _review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts)
+        review = _review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts,
+                                 layout_notes=notes)
     except ProviderError as e:
         store.update_attempt(attempt_id, status="blocked", blocked_cause=f"provider: {e}")
         return SubmitOutcome("blocked", attempt_id, blocked_cause=f"provider: {e}",
-                             fingerprint_changed=bool(changed), commands=[(r.argv, r.exit_code) for r in results])
+                             fingerprint_changed=bool(changed), commands=[(r.argv, r.exit_code) for r in results],
+                             layout_notes=notes)
     res = gate.apply_review(store, attempt_id=attempt_id, slice=slice_, review=review, all_green=kind == "green",
                             threshold=ctx.config.gate.pass_threshold, now=clock())
     return SubmitOutcome(
         "reviewed", attempt_id, verdict="pass" if res.passed else "needs_work", passed=res.passed,
         issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts, unlocked=res.unlocked,
         commands=[(r.argv, r.exit_code) for r in results], fingerprint_changed=bool(changed),
-        understanding_check=review.understanding_check)
+        understanding_check=review.understanding_check, layout_notes=notes)
 
