@@ -61,7 +61,7 @@ def test_plan_feedback_is_passed_on_retry():
 
 def test_write_slice_returns_slice_with_outline_identity():
     o = b.outline(2).slices[1]
-    sl = b.slice_for(1)  # model returns the wrong id/index/minutes: the tool overrides them from the outline
+    sl = b.draft_for(1)  # identity (id, index, concepts, minutes) comes from the outline, not the model
     llm = FakeLLM({"writer": [sl]})
     out = writer.write_slice(llm, o, skill="python", known=KNOWN, concepts=b.outline().concepts)
     assert (out.id, out.index, out.concepts, out.est_minutes) == ("S2", 2, o.concepts, o.est_minutes)
@@ -71,16 +71,30 @@ def test_write_slice_returns_slice_with_outline_identity():
 
 
 def test_write_slice_prompt_states_the_writer_contract():
-    llm = FakeLLM({"writer": [b.slice_for(1)]})
+    llm = FakeLLM({"writer": [b.draft_for(1)]})
     writer.write_slice(llm, b.outline().slices[0], skill="python", known=KNOWN, concepts=b.outline().concepts)
     s = llm.calls[0].system.lower()
-    for phrase in ("inside the test", "stub", "never write", "breaks_down_at", "argv", "files", "test_*.py",
-                   "without test files"):
+    for phrase in ("inside the test", "stub", "never write", "breaks_down_at", "argv", "tests", "path",
+                   "content", "test_*.py", "at least one"):
         assert phrase in s, phrase
 
 
 def test_write_slice_regeneration_feedback_in_prompt():
-    llm = FakeLLM({"writer": [b.slice_for(1)]})
+    llm = FakeLLM({"writer": [b.draft_for(1)]})
     writer.write_slice(llm, b.outline().slices[0], skill="python", known=KNOWN, concepts=b.outline().concepts,
                        feedback="all acceptance commands are green on the empty scaffold")
     assert "all acceptance commands are green" in llm.calls[0].user
+
+
+def test_write_slice_assembles_the_file_map_from_the_draft():
+    llm = FakeLLM({"writer": [b.draft_for(1)]})
+    out = writer.write_slice(llm, b.outline().slices[0], skill="python", known=KNOWN, concepts=b.outline().concepts)
+    assert out.files == {"tests/test_wc.py": b.GOOD_TEST, "fixtures/in.txt": "a a b\n", "src/wc/__init__.py": ""}
+    assert llm.calls[0].output_type.__name__ == "SliceDraft"
+
+
+def test_the_model_cannot_return_a_draft_without_tests():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        b.draft_for(1).model_validate({**b.draft_for(1).model_dump(), "tests": []})

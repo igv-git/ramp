@@ -131,6 +131,25 @@ If a failure is not your code's fault (a broken generated test, a timeout, a pro
 | `a curriculum already exists` | `init` never overwrites progress. To start over deliberately, remove `~/.ramp/stacks`, `~/.ramp/slices` and `~/.ramp/profile.db` yourself. |
 | cost cap reached | Raise the caps in `config.toml`, or wait for the next day's budget. |
 
+## Debugging model conversations
+
+Every call to a model is recorded, one JSON line per attempt, in `~/.ramp/logs/llm-YYYY-MM-DD.jsonl`. Each line has the role, model, the full system and user prompt, the reply (or the error), token counts, cost, duration, and the whole exchange with the model, including the validation errors ramp sent back when a reply didn't fit the expected shape. The API key is never written. The folder is readable only by you and is git-ignored, but it does contain your prompts and code, so treat it like your workspace.
+
+When a command fails, the error ends with `(trace: <path>)`. To read it (needs [jq](https://jqlang.github.io/jq/)):
+
+```bash
+# which attempts failed, and why
+jq -c 'select(.ok==false) | {ts, role, attempt, error}' ~/.ramp/logs/llm-*.jsonl
+
+# the validation errors the model was told about (why its reply was rejected)
+jq -r 'select(.ok==false) | .messages[]?.parts[]? | select(.part_kind=="tool-return") | .content | tostring' ~/.ramp/logs/llm-*.jsonl
+
+# what the model actually answered, and the prompt it was given
+jq 'select(.role=="writer") | {user, output}' ~/.ramp/logs/llm-*.jsonl | less
+```
+
+Turn it off with `trace_llm = false` under `[debug]` in `config.toml`. Delete old files whenever you like.
+
 ## What ramp is not
 
 - **Not a mastery claim.** Onboarding, not mastery. The MVP reports counts (slices completed, cards answered, re-writes passed), never skill levels. The level exam is deferred.

@@ -8,6 +8,8 @@ from ramp.providers.client import TransportResult
 
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
+OUTPUT_RETRIES = 3
+
 
 def _default_model(rc, api_key: str):
     from pydantic_ai.models.openai import OpenAIChatModel
@@ -34,16 +36,28 @@ class OpenRouterTransport:
         self._model_factory = model_factory or _default_model
 
     def __call__(self, rc, api_key: str, system: str, user: str, output_type) -> TransportResult:
-        from pydantic_ai import Agent
+        from pydantic_ai import Agent, capture_run_messages
+        from pydantic_ai.messages import ModelMessagesTypeAdapter
 
         agent = Agent(
             self._model_factory(rc, api_key),
             output_type=output_type,
             system_prompt=system,
             model_settings={"max_tokens": rc.max_output_tokens},
+            retries=OUTPUT_RETRIES,  # strict output models: give the model several tries to satisfy them
         )
-        result = agent.run_sync(user)
+
+        def dump(messages) -> list:
+            return ModelMessagesTypeAdapter.dump_python(list(messages), mode="json")
+
+        with capture_run_messages() as captured:
+            try:
+                result = agent.run_sync(user)
+            except Exception as e:
+                e.ramp_trace_messages = dump(captured)  # what the model said, incl. validation retries
+                raise
         usage = result.usage
         return TransportResult(
-            output=result.output, tokens_in=usage.input_tokens or 0, tokens_out=usage.output_tokens or 0
+            output=result.output, tokens_in=usage.input_tokens or 0, tokens_out=usage.output_tokens or 0,
+            messages=dump(result.all_messages()),
         )

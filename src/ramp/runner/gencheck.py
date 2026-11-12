@@ -73,8 +73,8 @@ def _check(workspace: Path, commands: list[list[str]]) -> GenCheckResult:
         return GenCheckResult(False, f"allowlist: {e}")
 
     if not _has_test_files(workspace):
-        return GenCheckResult(False, "the slice has no test files: put the complete text of each test in "
-                                     "`files` under tests/, named test_*.py or *_test.py (pytest only "
+        return GenCheckResult(False, "the slice has no test files: return at least one entry in `tests` with "
+                                     "the complete test source, named test_*.py or *_test.py (pytest only "
                                      "collects those names)")
     pytest_cmds = [v for v in valid if v.kind == "test"]
     if not pytest_cmds:

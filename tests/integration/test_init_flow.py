@@ -24,7 +24,7 @@ def nothing_written(law_home, ctx):
 
 
 def test_success_writes_plan_slices_and_state(law_home):
-    llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.slice_for(1), b.slice_for(2)]})
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.draft_for(1), b.draft_for(2)]})
     plan, ctx = run(law_home, llm)
     try:
         assert [s.id for s in plan.slices] == ["S1", "S2"]
@@ -87,7 +87,7 @@ def test_ineligible_skill_refused_with_reasons_and_nothing_written(law_home):
 
 def test_slice_failing_generation_check_is_regenerated_then_succeeds(law_home):
     llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)],
-                   "writer": [b.slice_for(1, test=b.GREEN_TEST), b.slice_for(1)]})
+                   "writer": [b.draft_for(1, test=b.GREEN_TEST), b.draft_for(1)]})
     plan, ctx = run(law_home, llm)
     try:
         writer_calls = [c for c in llm.calls if c.role == "writer"]
@@ -101,7 +101,7 @@ def test_slice_failing_generation_check_is_regenerated_then_succeeds(law_home):
 
 
 def test_three_bad_slices_stop_loudly_with_the_cause(law_home):
-    bad = b.slice_for(1, test=b.GREEN_TEST)
+    bad = b.draft_for(1, test=b.GREEN_TEST)
     llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [bad, bad, bad, bad]})
     ctx = wiring.make_context(law_home, llm=llm)
     try:
@@ -117,8 +117,8 @@ def test_three_bad_slices_stop_loudly_with_the_cause(law_home):
 
 
 def test_allowlist_violation_in_writer_output_counts_as_failed_check(law_home):
-    bad = b.slice_for(1, argv=("sh", "-c", "echo hi"))
-    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [bad, b.slice_for(1)]})
+    bad = b.draft_for(1, argv=("sh", "-c", "echo hi"))
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [bad, b.draft_for(1)]})
     plan, ctx = run(law_home, llm)
     try:
         assert "allowlist" in [c for c in llm.calls if c.role == "writer"][1].user
@@ -129,7 +129,7 @@ def test_allowlist_violation_in_writer_output_counts_as_failed_check(law_home):
 
 def test_over_budget_plan_is_regenerated(law_home):
     llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 40), b.outline(2, 30)],
-                   "writer": [b.slice_for(1), b.slice_for(2)]})
+                   "writer": [b.draft_for(1), b.draft_for(2)]})
     plan, ctx = run(law_home, llm)
     try:
         planner_calls = [c for c in llm.calls if c.role == "planner"]
@@ -140,7 +140,7 @@ def test_over_budget_plan_is_regenerated(law_home):
 
 
 def test_writer_cannot_change_identity_of_a_slice(law_home):
-    llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.slice_for(2), b.slice_for(1)]})
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.draft_for(2), b.draft_for(1)]})
     plan, ctx = run(law_home, llm)
     try:
         assert [s.id for s in plan.slices] == ["S1", "S2"] and isinstance(plan, m.Plan)
@@ -149,7 +149,7 @@ def test_writer_cannot_change_identity_of_a_slice(law_home):
 
 
 def test_second_init_never_overwrites_progress(law_home):
-    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [b.slice_for(1)]})
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [b.draft_for(1)]})
     _, ctx = run(law_home, llm)
     try:
         before = (law_home / "stacks" / "python" / "plan.json").read_text()

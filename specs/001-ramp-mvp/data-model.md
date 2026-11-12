@@ -73,6 +73,17 @@ class CandoMap(BaseModel):
     cando: str
     concepts: list[str]
 
+class FileSpec(BaseModel):       # one file the writer ships
+    path: str; content: str       # path relative to its folder; content is the complete text
+
+class SliceDraft(BaseModel):     # WRITER OUTPUT (the Slice's identity comes from the outline, not the model)
+    title: str; brief: str; bridges: list[Bridge]; acceptance: list[AcceptanceCommand]
+    doc_refs: list[str] = []; prerequisites: list[str] = []
+    tests: list[FileSpec]         # REQUIRED, min 1, at least one test_*.py or *_test.py; relative to tests/
+    fixtures: list[FileSpec] = []; expected: list[FileSpec] = []
+    stubs: list[FileSpec] = []    # empty placeholder files under src/
+    # draft.files() builds Slice.files: tests/, fixtures/, expected/, src/ prefixes added, none doubled
+
 class SliceOutline(BaseModel):   # planner output for one slice; the writer expands it into a Slice
     id: str; index: int; title: str; concepts: list[str]; est_minutes: int
     prerequisites: list[str] = []; focus: str   # <= 300 chars, no code

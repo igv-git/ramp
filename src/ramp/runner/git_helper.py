@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-_GITIGNORE_LINES = ("profile.db",)
+_GITIGNORE_LINES = ("profile.db", "logs/")
 _FALLBACK_IDENTITY = ["-c", "user.name=ramp", "-c", "user.email=ramp@localhost"]
 
 

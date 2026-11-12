@@ -40,7 +40,7 @@ def curriculum(law_home):
     from ramp.loop import init_flow
     from ramp.providers.port import FakeLLM
 
-    llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.slice_for(1), b.slice_for(2)]})
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.draft_for(1), b.draft_for(2)]})
     ctx = wiring.make_context(law_home, llm=llm)
     init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1.0, days=1,
                        deadline=None, goals=[])

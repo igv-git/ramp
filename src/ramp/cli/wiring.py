@@ -12,6 +12,7 @@ from ramp.providers.client import ProviderClient
 from ramp.providers.cost import CostMeter
 from ramp.providers.openrouter import OpenRouterTransport
 from ramp.providers.port import LLMPort
+from ramp.providers.trace import Tracer
 from ramp.store import db as store_db
 from ramp.store.ledger import StoreLedger
 from ramp.store.repos import Store
@@ -34,7 +35,8 @@ def make_context(home: Path | None = None, llm: LLMPort | None = None) -> Contex
     store = Store(store_db.connect(home / "profile.db"))
     if llm is None:
         meter = CostMeter(StoreLedger(store), config.caps)
-        llm = ProviderClient(config, meter, OpenRouterTransport())
+        llm = ProviderClient(config, meter, OpenRouterTransport(),
+                             tracer=Tracer(home / "logs", enabled=config.debug.trace_llm))
     return Context(home=home, config=config, store=store, llm=llm)
 
 

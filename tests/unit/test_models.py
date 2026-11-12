@@ -143,3 +143,63 @@ def test_plan_outline_validation():
     gap = m.SliceOutline(id="S3", index=3, title="t", concepts=["c"], est_minutes=10, focus="f")
     with pytest.raises(ValidationError):  # indexes must be 1..n
         m.PlanOutline(**{**ok, "slices": [dup, gap]})
+
+
+def make_draft(**over):
+    base = {
+        "title": "t", "brief": "Count words.", "bridges": [m.Bridge(from_stack="java", comparison="c",
+                                                                    breaks_down_at="b")],
+        "acceptance": [m.AcceptanceCommand(argv=["pytest", "-q"])],
+        "tests": [m.FileSpec(path="test_a.py", content="def test_a():\n    assert False\n")],
+    }
+    base.update(over)
+    return m.SliceDraft(**base)
+
+
+def test_draft_requires_at_least_one_test_file():
+    make_draft()
+    with pytest.raises(ValidationError):
+        make_draft(tests=[])
+
+
+@pytest.mark.parametrize("path", ["helper.py", "notes.txt", "test_a.txt", "conftest.py"])
+def test_draft_tests_must_be_collectable_by_name(path):
+    with pytest.raises(ValidationError, match="test_"):
+        make_draft(tests=[m.FileSpec(path=path, content="x")])
+
+
+@pytest.mark.parametrize("path", ["test_a.py", "a_test.py", "sub/test_b.py", "tests/test_c.py"])
+def test_draft_accepts_collectable_names(path):
+    make_draft(tests=[m.FileSpec(path=path, content="x")])
+
+
+def test_draft_files_are_placed_under_the_right_folders_without_doubling_prefixes():
+    d = make_draft(
+        tests=[m.FileSpec(path="test_a.py", content="T1"), m.FileSpec(path="tests/test_b.py", content="T2")],
+        fixtures=[m.FileSpec(path="in.txt", content="F"), m.FileSpec(path="fixtures/in2.txt", content="F2")],
+        expected=[m.FileSpec(path="out.txt", content="E")],
+        stubs=[m.FileSpec(path="pkg/__init__.py", content=""), m.FileSpec(path="src/tool.py", content="")],
+    )
+    assert d.files() == {
+        "tests/test_a.py": "T1", "tests/test_b.py": "T2", "fixtures/in.txt": "F", "fixtures/in2.txt": "F2",
+        "expected/out.txt": "E", "src/pkg/__init__.py": "", "src/tool.py": "",
+    }
+
+
+@pytest.mark.parametrize("path", ["../x.py", "/etc/x.py", "a/../../x.py", "tests\\x.py", "a\x00.py"])
+def test_draft_rejects_unsafe_paths(path):
+    with pytest.raises(ValidationError):
+        make_draft(fixtures=[m.FileSpec(path=path, content="x")])
+
+
+def test_draft_has_the_same_brief_rules_as_a_slice():
+    with pytest.raises(ValidationError):
+        make_draft(brief=" ".join(["w"] * 151))
+    with pytest.raises(ValidationError):
+        make_draft(brief="```x```")
+    with pytest.raises(ValidationError):
+        make_draft(acceptance=[])
+
+
+def test_draft_carries_no_identity_fields():
+    assert not {"id", "index", "concepts", "est_minutes", "status"} & set(m.SliceDraft.model_fields)

@@ -22,7 +22,7 @@ def seeded(tmp_home):
 
 
 def good_llm():
-    return FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.slice_for(1), b.slice_for(2)]})
+    return FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.draft_for(1), b.draft_for(2)]})
 
 
 def finish_config(home):
@@ -88,7 +88,7 @@ def test_init_mock_descriptors_exit_1(seeded):
 def test_init_generation_failure_exit_1(seeded):
     config.write_default(seeded)
     finish_config(seeded)
-    bad = b.slice_for(1, test=b.GREEN_TEST)
+    bad = b.draft_for(1, test=b.GREEN_TEST)
     llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [bad, bad, bad]})
     res = runner.invoke(app, ARGS, obj={"llm": llm})
     assert res.exit_code == 1 and "S1" in res.output and "green" in res.output

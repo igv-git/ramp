@@ -25,6 +25,11 @@ class GateConfig(_Strict):
     allow_same_reviewer_model: bool = False
 
 
+class DebugConfig(_Strict):
+    # Local JSONL trace of every model call under <home>/logs (prompts, replies, errors). Never leaves the machine.
+    trace_llm: bool = True
+
+
 class Caps(_Strict):
     max_cost_usd_per_command: float = Field(default=0.50, gt=0)
     max_cost_usd_per_day: float = Field(default=3.00, gt=0)
@@ -55,6 +60,7 @@ class Config(_Strict):
     schema_version: int = 1
     gate: GateConfig = GateConfig()
     caps: Caps = Caps()
+    debug: DebugConfig = DebugConfig()
     roles: dict[str, RoleConfig]
 
     @model_validator(mode="after")
@@ -111,10 +117,12 @@ def default_toml() -> str:
         "[caps]\n"
         "max_cost_usd_per_command = 0.50\nmax_cost_usd_per_day = 3.00\n"
         "max_regenerations = 2\nmax_retries = 2\n\n"
-        f"[roles.planner]  # strong\n{role(PLACEHOLDER, 24000, 6000)}\n"
-        f"[roles.writer]  # strong\n{role(PLACEHOLDER, 24000, 8000)}\n"
-        f"[roles.reviewer]  # must differ from the writer\n{role(PLACEHOLDER + '_DIFFERENT', 24000, 3000)}\n"
-        f"[roles.grader]  # cheap\n{role(PLACEHOLDER + '_CHEAP', 6000, 600)}"
+        "[debug]\n# local trace of every model call in <home>/logs (prompts, replies, errors); never leaves the machine\n"
+        "trace_llm = true\n\n"
+        f"[roles.planner]  # strong\n{role(PLACEHOLDER, 24000, 12000)}\n"
+        f"[roles.writer]  # strong\n{role(PLACEHOLDER, 24000, 16000)}\n"
+        f"[roles.reviewer]  # must differ from the writer\n{role(PLACEHOLDER + '_DIFFERENT', 24000, 8000)}\n"
+        f"[roles.grader]  # cheap\n{role(PLACEHOLDER + '_CHEAP', 6000, 2000)}"
     )
 
 

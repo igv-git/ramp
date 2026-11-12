@@ -37,6 +37,19 @@ def slice_for(i=1, test=GOOD_TEST, minutes=30, argv=("pytest", "-q")):
     )
 
 
+def draft_for(i=1, test=GOOD_TEST, minutes=30, argv=("pytest", "-q")):
+    """What the writer model returns: a SliceDraft (the identity fields come from the outline)."""
+    return m.SliceDraft(
+        title=f"Slice {i}", brief="Count the words in a file and print the top three.",
+        bridges=[m.Bridge(from_stack="java", comparison="Counter is like a HashMap with a default of zero",
+                          breaks_down_at="missing keys return 0, not null")],
+        acceptance=[m.AcceptanceCommand(argv=list(argv))],
+        tests=[m.FileSpec(path="test_wc.py", content=test)],
+        fixtures=[m.FileSpec(path="in.txt", content="a a b\n")],
+        stubs=[m.FileSpec(path="wc/__init__.py", content="")],
+    )
+
+
 def review_out(rating=4, issues=(), leaked=False, verdict="pass", concepts=("counter",), evidence="src/wc/__init__.py:1"):
     return m.ReviewerOutput(
         verdict=verdict,

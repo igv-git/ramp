@@ -86,6 +86,74 @@ class Slice(_Strict):
         return v
 
 
+class FileSpec(_Strict):
+    """One file the writer ships: a path relative to its folder, and the complete text."""
+
+    path: str = Field(max_length=200)
+    content: str
+
+
+def _plain_relative(path: str) -> str:
+    rel = PurePosixPath(path)
+    if (not path or rel.is_absolute() or "\\" in path or "\x00" in path
+            or any(part in ("..", ".", "") for part in rel.parts)):
+        raise ValueError(f"unsafe file path: {path!r}")
+    return path
+
+
+def _in_folder(folder: str, path: str) -> str:
+    prefix = folder + "/"
+    return folder + "/" + (path.removeprefix(prefix))
+
+
+class SliceDraft(_Strict):
+    """What the writer model returns. Identity (id, index, concepts, minutes) comes from the plan outline."""
+
+    title: str
+    brief: str
+    bridges: list[Bridge]
+    acceptance: list[AcceptanceCommand]
+    doc_refs: list[str] = []
+    prerequisites: list[str] = []
+    tests: list[FileSpec] = Field(min_length=1)  # complete text of every test file; paths relative to tests/
+    fixtures: list[FileSpec] = []  # inputs; paths relative to fixtures/
+    expected: list[FileSpec] = []  # expected outputs; paths relative to expected/
+    stubs: list[FileSpec] = []  # empty placeholder files under src/ (never logic); paths relative to src/
+
+    @field_validator("brief")
+    @classmethod
+    def _brief(cls, v: str) -> str:
+        if len(v.split()) > 150:
+            raise ValueError("brief must be at most 150 words")
+        return _no_fence(v)
+
+    @field_validator("acceptance")
+    @classmethod
+    def _acceptance(cls, v):
+        if not v:
+            raise ValueError("acceptance must not be empty")
+        return v
+
+    @model_validator(mode="after")
+    def _files_ok(self):
+        for group in (self.tests, self.fixtures, self.expected, self.stubs):
+            for f in group:
+                _plain_relative(f.path)
+        names = [_in_folder("tests", f.path).rsplit("/", 1)[-1] for f in self.tests]
+        if not any((n.startswith("test_") and n.endswith(".py")) or n.endswith("_test.py") for n in names):
+            raise ValueError("tests needs at least one file named test_*.py or *_test.py, "
+                             "or pytest will not collect it")
+        return self
+
+    def files(self) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for folder, group in (("tests", self.tests), ("fixtures", self.fixtures),
+                              ("expected", self.expected), ("src", self.stubs)):
+            for f in group:
+                out[_in_folder(folder, f.path)] = f.content
+        return out
+
+
 class Issue(_Strict):
     location: str
     symptom: str = Field(max_length=200)
