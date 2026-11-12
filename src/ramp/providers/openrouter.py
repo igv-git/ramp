@@ -13,6 +13,11 @@ def _default_model(rc, api_key: str):
     from pydantic_ai.models.openai import OpenAIChatModel
 
     host = urlparse(rc.base_url).hostname or ""
+    if host.endswith("anthropic.com"):  # native Anthropic API
+        from pydantic_ai.models.anthropic import AnthropicModel
+        from pydantic_ai.providers.anthropic import AnthropicProvider
+
+        return AnthropicModel(rc.model, provider=AnthropicProvider(api_key=api_key))
     if host.endswith("openrouter.ai"):
         from pydantic_ai.providers.openrouter import OpenRouterProvider
 

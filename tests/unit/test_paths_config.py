@@ -89,3 +89,16 @@ def test_placeholder_model_rejected_at_call_time(tmp_path):
     with pytest.raises(config.ConfigError, match=r"config\.toml.*roles\.planner\.model"):
         cfg.require_model("planner")
     assert cfg.require_model("writer").model == "m-write"
+
+
+def test_same_model_for_reviewer_and_writer_needs_explicit_opt_in(tmp_path):
+    same = {"reviewer": "m-write"}
+    with pytest.raises(config.ConfigError, match="allow_same_reviewer_model"):
+        load(tmp_path, valid_toml(models=same))
+    cfg = load(tmp_path, valid_toml(models=same, gate="pass_threshold = 3\nallow_same_reviewer_model = true"))
+    assert cfg.gate.allow_same_reviewer_model is True
+    assert cfg.roles["reviewer"].model == cfg.roles["writer"].model
+
+
+def test_opt_in_defaults_to_off(tmp_path):
+    assert load(tmp_path, valid_toml()).gate.allow_same_reviewer_model is False

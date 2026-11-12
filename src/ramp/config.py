@@ -21,6 +21,8 @@ class _Strict(BaseModel):
 
 class GateConfig(_Strict):
     pass_threshold: int = Field(default=3, ge=0, le=5)
+    # The reviewer defaults to a different model than the writer (manifest §3.3). Same model needs this opt-in.
+    allow_same_reviewer_model: bool = False
 
 
 class Caps(_Strict):
@@ -63,8 +65,9 @@ class Config(_Strict):
         extra = [r for r in self.roles if r not in ROLES]
         if extra:
             raise ValueError(f"unknown role(s): {', '.join(extra)}")
-        if self.roles["reviewer"].model == self.roles["writer"].model:
-            raise ValueError("roles.reviewer.model must differ from roles.writer.model")
+        if self.roles["reviewer"].model == self.roles["writer"].model and not self.gate.allow_same_reviewer_model:
+            raise ValueError("roles.reviewer.model must differ from roles.writer.model "
+                             "(or set gate.allow_same_reviewer_model = true to accept the same model)")
         return self
 
     def require_model(self, role: str) -> RoleConfig:
