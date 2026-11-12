@@ -35,3 +35,27 @@ def slice_for(i=1, test=GOOD_TEST, minutes=30, argv=("pytest", "-q")):
         acceptance=[m.AcceptanceCommand(argv=list(argv))], est_minutes=minutes,
         files={"tests/test_wc.py": test, "src/wc/__init__.py": "", "fixtures/in.txt": "a a b\n"},
     )
+
+
+def review_out(rating=4, issues=(), leaked=False, verdict="pass", concepts=("counter",), evidence="src/wc/__init__.py:1"):
+    return m.ReviewerOutput(
+        verdict=verdict,
+        issues=[m.Issue(location=loc, symptom=sym, hint=hint, concept="counter") for loc, sym, hint in issues],
+        understanding_check="Why does the key for a missing word start at zero?",
+        concept_ratings=[m.ConceptRating(concept=c, rating=rating, evidence=evidence, delta_reason="seen in code")
+                         for c in concepts],
+        leaked_solution=leaked,
+    )
+
+
+CLEAN_ISSUE = ("src/wc/__init__.py:1", "count returns nothing for the sample input",
+               "src/wc/__init__.py:1 returns before it reads the words. Trace what the function hands back.")
+CODE_ISSUE = ("src/wc/__init__.py:1", "count returns nothing", "At src/wc/__init__.py:1 replace the loop with a comprehension.")
+
+SOLUTION = (
+    "def count(text):\n"
+    "    out = {}\n"
+    "    for w in text.split():\n"
+    "        out[w] = out.get(w, 0) + 1\n"
+    "    return out\n"
+)

@@ -5,12 +5,14 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from ramp import paths
 from ramp.cli import wiring
 from ramp.config import ConfigError, write_default
-from ramp.loop import init_flow
+from ramp.loop import init_flow, submit_flow, today_flow
 from ramp.matrix import LawError
 from ramp.providers.port import ProviderError
 from ramp.runner.git_helper import init_repo
@@ -87,13 +89,58 @@ def _not_yet(name: str) -> Callable:
 
 
 def today_cmd(ctx: typer.Context) -> None:
-    """Show due cards, then the current slice brief."""
-    _not_yet("today")(ctx)
+    """Show today's slice brief (due review cards come first once cards exist)."""
+    context = _context(ctx, paths.home())
+    try:
+        view = today_flow.run_today(context)
+    except today_flow.NoCurriculum as e:
+        raise _fail(str(e)) from None
+    finally:
+        context.store.close()
+    if view.finished:
+        console.print(Text(view.message))
+        return
+    body = Text(view.brief)
+    if view.bridges:
+        body.append("\n\nBridges to what you know:\n", style="bold")
+        for i, bridge in enumerate(view.bridges, start=1):
+            body.append(f"  {i}. {bridge}\n")
+    console.print(Panel(body, title=f"{view.slice_id} — {view.title}", title_align="left"))
+    console.print(Text(f"Workspace: {view.workspace}\nWrite your code in src/, then run `ramp submit`."))
 
 
 def submit_cmd(ctx: typer.Context) -> None:
     """Run the acceptance checks and get a review."""
-    _not_yet("submit")(ctx)
+    context = _context(ctx, paths.home())
+    try:
+        out = submit_flow.run_submit(context)
+    except (submit_flow.NothingToSubmit, today_flow.NoCurriculum) as e:
+        raise _fail(str(e)) from None
+    finally:
+        context.store.close()
+    for argv, code in out.commands:
+        state = "ok" if code == 0 else "timed out / not started" if code is None else f"exit {code}"
+        console.print(Text(f"  {' '.join(argv)}  ->  {state}"))
+    if out.fingerprint_changed:
+        console.print(Text("Note: the test or fixture files differ from the shipped ones (logged, not blocked)."))
+    if out.status == "blocked":
+        typer.echo(f"Blocked: {out.blocked_cause}\nThis is not counted against you. Fix the cause and run "
+                   "`ramp submit` again.", err=True)
+        raise typer.Exit(1)
+    if out.passed:
+        console.print(Text("Passed.", style="bold green"))
+        if out.unlocked:
+            console.print(Text(f"Next slice {out.unlocked} unlocked. Run `ramp today`."))
+        else:
+            console.print(Text("That was the last slice."))
+        return
+    console.print(Text("Not passed yet (verdict: needs work).", style="bold"))
+    for reason in out.reasons:
+        console.print(Text(f"  - {reason}"))
+    for issue in out.issues:
+        console.print(Text(f"\n{issue.location}\n  {issue.symptom}\n  Hint: {issue.hint}"))
+    if out.understanding_check:
+        console.print(Text(f"\nThink about: {out.understanding_check}"))
 
 
 def export_cmd(ctx: typer.Context) -> None:

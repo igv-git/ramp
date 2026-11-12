@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 
 from fsrs import Card, Rating, ReviewLog, Scheduler
 
+from ramp.models import CardPrompt
+
 _SCHEDULER = Scheduler(enable_fuzzing=False)  # deterministic scheduling
 
 _GRADE_TO_RATING = {0: Rating.Again, 1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Good,
@@ -33,3 +35,13 @@ def card_to_json(card: Card) -> str:
 
 def card_from_json(text: str) -> Card:
     return Card.from_dict(json.loads(text))
+
+
+def card_prompt_template(name: str, bridge_note: str | None) -> CardPrompt:
+    """Deterministic question and rubric for a new card (no model call, works offline)."""
+    note = (bridge_note or "").strip()
+    question = f"In your own words, what is {name} and when would you use it? Give a small example."
+    rubric = f"A good answer explains {name} accurately and gives a concrete example of its use."
+    if note:
+        rubric += f" It should also say where this comparison from your old stack stops holding: {note}."
+    return CardPrompt(question=question[:300], rubric=rubric[:500])

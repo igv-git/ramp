@@ -1,6 +1,6 @@
 # Contract: leak lint
 
-`lint.check_hint(hint: str) -> LintResult(ok: bool, rules: list[str])` applied to every `Issue.hint`, `understanding_check` and `symptom` before display/storage. Violation → reviewer regenerates (≤ 2) → generic fallback hint per issue: `"Look at <location>: <symptom>. Re-read the brief for the concept <concept>."` (built from validated fields, no model text).
+`lint.check_hint(hint: str, location: str | None) -> LintResult(ok: bool, rules: list[str])` applies L1–L5 to every `Issue.hint`; `lint.check_text(text)` applies L1–L3 to `symptom`, `understanding_check` and each rating's `delta_reason`. Both run before display/storage. In L1 a `path:line` inside a code span is exempt from the `:` test. Violation → reviewer regenerates (≤ 2) → generic fallback hint per issue: `"Look at <location>: <symptom>. Re-read the brief for the concept <concept>."` (built from validated fields, no model text).
 
 ## Rules (all deterministic)
 | Id | Rule | Examples that FAIL |

@@ -13,12 +13,12 @@ ramp never writes your code. That is the whole point.
 | Command | What it does | Available |
 |---|---|---|
 | `ramp init` | Checks the skill is teachable this way, then builds your curriculum | **yes** |
-| `ramp today` | Shows due review cards, then today's slice brief | not yet |
-| `ramp submit` | Runs the checks, gives hints-first feedback, decides pass or not | not yet |
+| `ramp today` | Shows today's slice brief (review cards come later) | **yes** |
+| `ramp submit` | Runs the checks, gives hints-first feedback, decides pass or not | **yes** (no teach-back yet) |
 | `ramp export` | Writes a plain-text snapshot of your progress and commits it | not yet |
 | `ramp flag-bridge` | Marks a comparison to your old stack that misled you | not yet |
 
-Until `today` and `submit` land, you can create a curriculum and inspect it, but not yet practise. The sections on the daily loop describe how it will work.
+You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards, the teach-back, the offline review queue, `export` and `flag-bridge` are still to come; the sections below mark which parts are not live yet.
 
 ## Setup
 
@@ -82,7 +82,7 @@ What happens:
 
 `ramp init` will not overwrite an existing curriculum or your progress.
 
-## The daily loop (coming with `today` and `submit`)
+## The daily loop
 
 About 45 minutes a day:
 
@@ -90,11 +90,11 @@ About 45 minutes a day:
 2. **Code by hand**, in your own editor, in the slice's workspace folder.
 3. **`ramp submit`** — ramp runs the checks and a reviewer reads your attempt. If something is wrong you get hints that say *where* and *what looks off*, never the fix. Fix it and submit again.
 4. **Passing** takes more than green tests: every concept the slice targets must also be rated well, with evidence in your code, and the reviewer must not have given the answer away. Green tests alone are not a pass.
-5. After a pass you answer a short **teach-back** in your own words, and the next slice unlocks.
+5. On a pass the next slice unlocks. *(Coming: a short teach-back in your own words before it unlocks.)*
 
-Concepts you rated poorly on become spaced-repetition cards. A card appears the next time you run `today`, and then again at the point you are about to forget it.
+*(Coming)* Concepts you rated poorly on become spaced-repetition cards. Today the cards are created, but `today` does not serve them yet; once it does, a card appears the next time you run `today` and then again at the point you are about to forget it.
 
-If the model provider is unreachable, `submit` still runs your tests and queues the review for later; the queue clears the next time you run `today` or `submit`. If a failure is not your code's fault (a broken generated test, a timeout, a provider error), ramp says so and marks the attempt as blocked rather than counting it against you.
+If a failure is not your code's fault (a broken generated test, a timeout, a provider error), ramp says so and marks the attempt as blocked rather than counting it against you; run `ramp submit` again once the cause is fixed. *(Coming: when the provider is unreachable, `submit` will queue the review and finish it later.)*
 
 ## Where your files live
 
