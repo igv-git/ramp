@@ -159,3 +159,76 @@ def test_second_init_never_overwrites_progress(law_home):
         assert (law_home / "stacks" / "python" / "plan.json").read_text() == before
     finally:
         ctx.store.close()
+
+
+def _with_brief(draft, brief):
+    return draft.model_copy(update={"brief": brief})
+
+
+def test_slice_that_mentions_tooling_is_regenerated_with_the_reason(law_home):
+    tooling = _with_brief(b.draft_for(1), "Install Python 3.12 and run uv init to create the project.")
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [tooling, b.draft_for(1)]})
+    plan, ctx = run(law_home, llm)
+    try:
+        second = [c for c in llm.calls if c.role == "writer"][1].user
+        assert "language core" in second and "'uv'" in second
+        assert "uv" not in plan.slices[0].brief
+    finally:
+        ctx.store.close()
+
+
+def test_slice_that_keeps_mentioning_tooling_stops_loudly(law_home):
+    tooling = _with_brief(b.draft_for(1), "Create a venv and pip install the helper package.")
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [tooling] * 4})
+    ctx = wiring.make_context(law_home, llm=llm)
+    try:
+        with pytest.raises(init_flow.SliceGenerationError) as ei:
+            init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
+                               days=1, deadline=None, goals=[])
+        assert "language core" in ei.value.cause
+        assert len([c for c in llm.calls if c.role == "writer"]) == 3
+        assert ctx.store.list_slice_states() == [] and not (law_home / "stacks").exists()
+    finally:
+        ctx.store.close()
+
+
+def test_non_pytest_acceptance_command_is_regenerated(law_home):
+    from ramp.models import AcceptanceCommand
+
+    prog = b.draft_for(1).model_copy(update={"acceptance": [
+        AcceptanceCommand(argv=["pytest", "-q"]), AcceptanceCommand(argv=["python", "src/wc/__init__.py"])]})
+    llm = FakeLLM({"planner": [b.eligible(), b.outline(1, 30)], "writer": [prog, b.draft_for(1)]})
+    plan, ctx = run(law_home, llm)
+    try:
+        assert "not a pytest run" in [c for c in llm.calls if c.role == "writer"][1].user
+        assert [c.argv for c in plan.slices[0].acceptance] == [["pytest", "-q"]]
+    finally:
+        ctx.store.close()
+
+
+def test_outline_that_plans_tooling_is_replanned(law_home):
+    bad = b.outline(1, 30)
+    bad.concepts[0] = m.ConceptDef(id="counter", name="Setting up uv and a venv", bridge_note="like a JDK install")
+    llm = FakeLLM({"planner": [b.eligible(), bad, b.outline(1, 30)], "writer": [b.draft_for(1)]})
+    plan, ctx = run(law_home, llm)
+    try:
+        planner_calls = [c for c in llm.calls if c.role == "planner"]
+        assert len(planner_calls) == 3 and "language core" in planner_calls[2].user
+        assert plan.concepts[0].name == "Counter"
+    finally:
+        ctx.store.close()
+
+
+def test_outline_that_always_plans_tooling_is_refused(law_home):
+    bad = b.outline(1, 30)
+    bad.slices[0] = bad.slices[0].model_copy(update={"title": "Install the toolchain"})
+    llm = FakeLLM({"planner": [b.eligible(), bad, bad, bad]})
+    ctx = wiring.make_context(law_home, llm=llm)
+    try:
+        with pytest.raises(init_flow.InitRefused) as ei:
+            init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
+                               days=1, deadline=None, goals=[])
+        assert "language core" in str(ei.value)
+        nothing_written(law_home, ctx)
+    finally:
+        ctx.store.close()

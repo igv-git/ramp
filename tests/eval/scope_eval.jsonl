@@ -1,0 +1,36 @@
+{"id": "ok01", "text": "Write parse_line, which turns one line into a name and an integer and tolerates surrounding spaces.", "label": "pass", "why": "language-core wording"}
+{"id": "ok02", "text": "Use a dict comprehension to total counts per name; keep the function pure with no printing.", "label": "pass", "why": "language-core wording"}
+{"id": "ok03", "text": "Annotate every signature with type hints and use keyword-only arguments with defaults where they help.", "label": "pass", "why": "language-core wording"}
+{"id": "ok04", "text": "Raise a ValueError for a negative count and catch it in the caller with try and except.", "label": "pass", "why": "language-core wording"}
+{"id": "ok05", "text": "Build a generator that yields each non-blank line lazily; consuming it twice yields nothing the second time.", "label": "pass", "why": "language-core wording"}
+{"id": "ok06", "text": "Implement a dataclass Point with equality and a __repr__ that shows both fields.", "label": "pass", "why": "language-core wording"}
+{"id": "ok07", "text": "Read a text file with open and a context manager, then return the lines stripped of whitespace.", "label": "pass", "why": "language-core wording"}
+{"id": "ok08", "text": "Sort records by count descending, then by name, using a key function.", "label": "pass", "why": "language-core wording"}
+{"id": "ok09", "text": "A list of Integer in Java maps loosely to list[int] in a hint; hints are ignored at runtime.", "label": "pass", "why": "language-core wording"}
+{"id": "ok10", "text": "Use the standard library collections.Counter to count words, then compare with a plain dict version.", "label": "pass", "why": "language-core wording"}
+{"id": "ok11", "text": "Write a class with __iter__ and __next__ so a for loop can walk it.", "label": "pass", "why": "language-core wording"}
+{"id": "ok12", "text": "Handle messy input with EAFP: attempt the int conversion and recover from ValueError.", "label": "pass", "why": "language-core wording"}
+{"id": "ok13", "text": "Use itertools.groupby on sorted records and explain why the input must be sorted first.", "label": "pass", "why": "language-core wording"}
+{"id": "ok14", "text": "Implement slicing helpers for tuples and show that tuples are immutable.", "label": "pass", "why": "language-core wording"}
+{"id": "ok15", "text": "Use a set to remove duplicates while preserving the first-seen order.", "label": "pass", "why": "language-core wording"}
+{"id": "ok16", "text": "Python modules run their top-level code on first import and are cached afterwards.", "label": "pass", "why": "language-core wording"}
+{"id": "ok17", "text": "Parse a CSV string with the csv module from the standard library.", "label": "pass", "why": "language-core wording"}
+{"id": "ok18", "text": "Return the three most common words as a list of tuples.", "label": "pass", "why": "language-core wording"}
+{"id": "bad01", "text": "The learner installs Python 3.12 and uv before starting.", "label": "fail", "why": "uv, install"}
+{"id": "bad02", "text": "Run pip install requests and then call the API.", "label": "fail", "why": "pip"}
+{"id": "bad03", "text": "Create a virtual environment with venv and activate it.", "label": "fail", "why": "venv, virtual environment"}
+{"id": "bad04", "text": "Create a project with uv init using the src layout.", "label": "fail", "why": "uv"}
+{"id": "bad05", "text": "Edit pyproject.toml so the package is installable.", "label": "fail", "why": "pyproject"}
+{"id": "bad06", "text": "Use uv add to add a dependency and uv lock to refresh the lock file.", "label": "fail", "why": "uv, lock file"}
+{"id": "bad07", "text": "Make sure interpreter version 3.15 is on your machine.", "label": "fail", "why": "interpreter version"}
+{"id": "bad08", "text": "Pin python 3.12 in the project.", "label": "fail", "why": "python 3.12"}
+{"id": "bad09", "text": "Build a Docker image that runs the tests.", "label": "fail", "why": "docker"}
+{"id": "bad10", "text": "Use poetry to manage dependencies.", "label": "fail", "why": "poetry"}
+{"id": "bad11", "text": "Run npm install and start the dev server.", "label": "fail", "why": "npm, install"}
+{"id": "bad12", "text": "Publish the wheel to PyPI.", "label": "fail", "why": "wheel, pypi"}
+{"id": "bad13", "text": "Write requirements.txt listing the packages.", "label": "fail", "why": "requirements.txt"}
+{"id": "bad14", "text": "Use Homebrew to get the tools you need.", "label": "fail", "why": "homebrew"}
+{"id": "bad15", "text": "Set up conda and a fresh environment.", "label": "fail", "why": "conda"}
+{"id": "bad16", "text": "Run cargo build before the tests.", "label": "fail", "why": "cargo"}
+{"id": "bad17", "text": "Check that the package manager resolves versions.", "label": "fail", "why": "package manager"}
+{"id": "bad18", "text": "sudo apt-get the missing library.", "label": "fail", "why": "sudo, apt-get"}

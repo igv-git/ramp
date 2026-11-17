@@ -61,3 +61,10 @@ def test_layout_notes_reach_the_reviewer_prompt():
                             layout_notes=["workspace/hello_app/ sits outside workspace/src"])
     assert "workspace/hello_app/ sits outside workspace/src" in llm.calls[0].user
     assert "layout notes" in llm.calls[0].system.lower()
+
+
+def test_reviewer_is_told_to_ignore_the_environment():
+    llm = FakeLLM({"reviewer": [b.review_out()]})
+    reviewer.review_attempt(llm, brief="b", diff="d", test_output="t", concepts=b.outline().concepts[:1])
+    s = llm.calls[0].system.lower()
+    assert "never comment on their environment" in s and "interpreter or library versions" in s

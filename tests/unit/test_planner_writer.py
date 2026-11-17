@@ -28,7 +28,7 @@ def test_check_eligibility_uses_planner_role_and_returns_model():
     assert "local command" in llm.calls[0].system and "minute" in llm.calls[0].system
     sys_prompt = llm.calls[0].system.lower()
     assert "no network" not in sys_prompt and "offline" not in sys_prompt  # the spec does not forbid the network
-    assert "package index" in sys_prompt and "accounts" in sys_prompt
+    assert "accounts" in sys_prompt and "language core" in sys_prompt
 
 
 def test_plan_sets_bridge_depth_from_claims_not_levels():
@@ -37,7 +37,7 @@ def test_plan_sets_bridge_depth_from_claims_not_levels():
     user = llm.calls[0].user
     assert "java: deep" in user and "js: shallow" in user
     assert "earned" not in user.lower() and "certified" not in user.lower()
-    assert len(out.slices) == 2 and out.cando_map and out.slices[0].prerequisites == ["uv installed"]
+    assert len(out.slices) == 2 and out.cando_map and out.slices[0].prerequisites == ["variables"]
     assert llm.calls[0].role == "planner"
 
 
@@ -100,7 +100,18 @@ def test_the_model_cannot_return_a_draft_without_tests():
         b.draft_for(1).model_validate({**b.draft_for(1).model_dump(), "tests": []})
 
 
-def test_writer_prompt_forbids_creating_a_project_inside_the_workspace():
+def test_writer_prompt_is_language_core_leetcode_style_with_pytest_only_acceptance():
     from ramp.agents import writer
+
     s = writer._SYSTEM.lower()
-    assert "never tell them to create a project" in s and "uv init" in s and "outside the workspace" in s
+    for phrase in ("language core only", "stub files under src/", "never mention installing", "virtual environments",
+                   "all of them are pytest runs"):
+        assert phrase in s, phrase
+    assert "uv" not in writer._SYSTEM.replace("learner", "").split("Acceptance")[1]  # no uv build form offered
+
+
+def test_planner_prompts_carry_the_language_core_scope():
+    for text in (planner._ELIGIBILITY_SYSTEM, planner._PLAN_SYSTEM):
+        low = text.lower()
+        assert "language core only" in low and "out of scope" in low and "never a reason to refuse" in low
+    assert "uv or pip" not in planner._ELIGIBILITY_SYSTEM  # the old "downloads are fine" allowance is gone

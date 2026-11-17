@@ -9,8 +9,20 @@ from pathlib import Path
 
 from ramp import gate, matrix, paths
 from ramp.agents import planner, writer
+from ramp.lint import scope
 from ramp.models import Plan, Slice
+from ramp.runner.allowlist import AllowlistViolation, validate_all
 from ramp.runner.gencheck import generation_time_check
+
+
+def _acceptance_violations(candidate: Slice, workspace: Path) -> list[str]:
+    """Acceptance commands must be pytest runs: the learner's code is judged by tests, never by tooling."""
+    try:
+        valid = validate_all([c.argv for c in candidate.acceptance], workspace)
+    except AllowlistViolation:
+        return []  # the generation-time check reports allowlist problems with its own message
+    return [f"acceptance command {' '.join(v.argv)!r} is not a pytest run; use only pytest commands"
+            for v in valid if v.kind != "test"]
 
 
 class InitRefused(Exception):
@@ -47,14 +59,21 @@ def run_init(ctx, *, law_dir: Path, skill: str, target_level: int, hours_per_day
     outline, feedback = None, None
     for _ in range(1 + regen):
         try:
-            outline = planner.plan(ctx.llm, skill=skill, target_level=target_level,
-                                   descriptor_text=descriptor_text, known=known, hours_per_day=hours_per_day,
-                                   days=days, goals=goals, feedback=feedback)
-            break
+            candidate_outline = planner.plan(ctx.llm, skill=skill, target_level=target_level,
+                                             descriptor_text=descriptor_text, known=known,
+                                             hours_per_day=hours_per_day, days=days, goals=goals,
+                                             feedback=feedback)
         except planner.PlanningError as e:
             feedback = str(e)
+            continue
+        bad = scope.check_outline(candidate_outline)
+        if not bad:
+            outline = candidate_outline
+            break
+        feedback = "; ".join(bad)
     if outline is None:
-        raise InitRefused([f"could not fit a curriculum into the stated hours: {feedback}"])
+        raise InitRefused(
+            [f"could not produce a curriculum within the language core and the stated hours: {feedback}"])
 
     slices: list[Slice] = []
     for item in outline.slices:
@@ -64,7 +83,15 @@ def run_init(ctx, *, law_dir: Path, skill: str, target_level: int, hours_per_day
             candidate = writer.write_slice(
                 ctx.llm, item, skill=skill, known=known,
                 concepts=[c for c in outline.concepts if c.id in item.concepts], feedback=feedback)
+            bad = scope.check_slice(candidate)
+            if bad:
+                feedback = "; ".join(bad)
+                continue
             gate.apply_slice(candidate, slice_dir)
+            bad = _acceptance_violations(candidate, slice_dir / "workspace")
+            if bad:
+                feedback = "; ".join(bad)
+                continue
             check = generation_time_check(slice_dir, candidate)
             if check.ok:
                 slices.append(candidate)

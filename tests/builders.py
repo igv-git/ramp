@@ -20,7 +20,7 @@ def outline(n=2, minutes=30):
                   m.ConceptDef(id="eafp", name="EAFP", bridge_note="try/except vs checking first")],
         cando_map=[m.CandoMap(cando="writes a CLI", concepts=["counter", "eafp"])],
         slices=[m.SliceOutline(id=f"S{i}", index=i, title=f"Slice {i}", concepts=["counter"],
-                               est_minutes=minutes, prerequisites=["uv installed"] if i == 1 else [],
+                               est_minutes=minutes, prerequisites=["variables"] if i == 1 else [],
                                focus="Count words in a file")
                 for i in range(1, n + 1)],
     )

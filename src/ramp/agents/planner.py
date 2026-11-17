@@ -11,16 +11,28 @@ class PlanningError(Exception):
 
 
 _ELIGIBILITY_SYSTEM = (
+    "Scope: ramp covers the LANGUAGE CORE only: the language itself and its standard library (syntax, types, "
+    "control flow, functions, classes, exceptions, text and file I/O, iteration). A can-do about toolchains, "
+    "installers or package managers, virtual environments, interpreter versions, build or packaging, "
+    "third-party libraries or frameworks, test frameworks, operating-system setup, deployment or infrastructure "
+    "is OUT of scope: ignore it completely. It is never a reason to refuse and never becomes a concept, slice "
+    "or prerequisite. "
     "You judge whether a skill level can be taught through hands-on exercises that a local command can check. "
     "Split the level descriptor into its individual can-dos. For each can-do decide whether a local command "
-    "(running tests or a program) can verify it within about a minute on the learner's own machine. Using the "
-    "network only to download packages or build tools from a public package index (for example uv or pip "
-    "fetching a build backend) is fine. A can-do is NOT checkable if it needs accounts, paid or private "
+    "(running tests or a program) can verify it within about a minute on the learner's own machine. A can-do is NOT checkable if it needs accounts, paid or private "
     "services, special hardware, or a person to judge the result. "
-    "Set eligible=true only if EVERY can-do is checkable. Give short reasons for any that are not."
+    "Judge only the in-scope can-dos. Set eligible=true only if EVERY in-scope can-do is checkable. Give short "
+    "reasons for any that are not."
 )
 
 _PLAN_SYSTEM = (
+    "Scope: ramp covers the LANGUAGE CORE only: the language itself and its standard library (syntax, types, "
+    "control flow, functions, classes, exceptions, text and file I/O, iteration). A can-do about toolchains, "
+    "installers or package managers, virtual environments, interpreter versions, build or packaging, "
+    "third-party libraries or frameworks, test frameworks, operating-system setup, deployment or infrastructure "
+    "is OUT of scope: ignore it completely. It is never a reason to refuse and never becomes a concept, slice "
+    "or prerequisite. "
+    "Every concept must be demonstrable in code the learner writes under src/ and checkable by a test. "
     "You design a short curriculum of vertical slices (small projects that each end runnable) that takes a "
     "developer who knows another stack to the target level. Decompose the can-dos into atomic concepts, map "
     "each can-do to its concepts, and order slices so each builds on the last. Total est_minutes MUST fit the "
