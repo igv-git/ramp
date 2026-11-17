@@ -13,7 +13,7 @@ description: "Task list for the ramp MVP, staged as 8 implement runs"
 | Label | User story (spec.md) |
 |---|---|
 | US1 | Daily slice loop: today → code → submit → verdict (P1) |
-| US2 | Plan once: `ramp init`, known and unknown skill (P1) |
+| US2 | Plan once: `ramp init` for a skill defined in `descriptors.yaml` (P1) |
 | US3 | Spaced-repetition cards (P2) |
 | US4 | Offline queue and blocked attempts (P2) |
 | US5 | Generated-slice trust: generation-time check, allowlist, leak lint (P2) |
@@ -154,12 +154,14 @@ description: "Task list for the ramp MVP, staged as 8 implement runs"
 
 ---
 
-## Run R8 — Unknown skill, hardening, lifecycle (day 7 afternoon)
+## Run R8 — Hardening, lifecycle (day 7 afternoon)
 
-- [ ] T072 [P] [US2] Write failing tests in `tests/unit/test_freeze.py`: `matrix.freeze(skill, levels)` appends a new skill and records `_meta.approvals.<skill>.approved_at`; refuses an existing skill (frozen law is never overwritten) and a `mock` file; `gate.freeze_descriptors` requires an explicit approval token from the CLI
-- [ ] T073 [US2] Implement `matrix.freeze` in `src/ramp/matrix/loader.py` and `gate.freeze_descriptors` in `src/ramp/gate/freeze.py`
-- [ ] T074 [P] [US2] Write failing tests in `tests/integration/test_unknown_skill.py`: unknown skill → `planner.draft_descriptors` shown; abort or no approval freezes nothing and writes no curriculum; approve/edit freezes with stamp then continues to eligibility and curriculum; quickstart scenario 10
-- [ ] T075 [US2] Implement `planner.draft_descriptors` in `src/ramp/agents/planner.py` and the unknown-skill branch in `src/ramp/loop/init_flow.py` and `src/ramp/cli/__init__.py` (approve / edit / abort prompt)
+> Owner decision 2026-11-17: the unknown-skill path is cut from the MVP. A new skill is added by editing `descriptors.yaml` (README, 'Adding a skill or changing levels'); ramp never drafts or freezes descriptors. T072–T075 are cancelled.
+
+- [~] T072 CANCELLED (owner decision 2026-11-17: unknown-skill path cut) ~~Write failing tests in `tests/unit/test_freeze.py`: `matrix.freeze(skill, levels)` appends a new skill and records `_meta.approvals.<skill>.approved_at`; refuses an existing skill (frozen law is never overwritten) and a `mock` file; `gate.freeze_descriptors` requires an explicit approval token from the CLI~~
+- [~] T073 CANCELLED (owner decision 2026-11-17: unknown-skill path cut) ~~Implement `matrix.freeze` in `src/ramp/matrix/loader.py` and `gate.freeze_descriptors` in `src/ramp/gate/freeze.py`~~
+- [~] T074 CANCELLED (owner decision 2026-11-17: unknown-skill path cut) ~~Write failing tests in `tests/integration/test_unknown_skill.py`: unknown skill → `planner.draft_descriptors` shown; abort or no approval freezes nothing and writes no curriculum; approve/edit freezes with stamp then continues to eligibility and curriculum; quickstart scenario 10~~
+- [~] T075 CANCELLED (owner decision 2026-11-17: unknown-skill path cut) ~~Implement `planner.draft_descriptors` in `src/ramp/agents/planner.py` and the unknown-skill branch in `src/ramp/loop/init_flow.py` and `src/ramp/cli/__init__.py` (approve / edit / abort prompt)~~
 - [ ] T076 [P] Write failing tests in `tests/integration/test_hardening.py`: cost-cap abort mid-command persists already-written state and reports the cap; `KeyboardInterrupt` during `submit` leaves the database consistent and records the started attempt as `blocked` with cause `interrupted` (Art. VIII: human may halt any run); spend counters survive across commands; retries/backoff as configured; lint and gencheck regeneration capped by `max_regenerations`
 - [ ] T077 Implement the hardening gaps found by T076 in `src/ramp/providers/`, `src/ramp/loop/` and `src/ramp/gate/` (no new features)
 - [ ] T078 [P] Write `tests/integration/test_lifecycle.py` running quickstart scenarios 1–12 end-to-end with `FakeLLM` (scenario 13, the holdout, is human-owned) and `tests/integration/test_dod_logs.py` asserting: zero lint violations on the eval set, zero code blocks in stored `review_json`, a passing `gencheck.log` for every shipped slice
@@ -167,7 +169,7 @@ description: "Task list for the ramp MVP, staged as 8 implement runs"
 
 **Run R8 done when**: green.
 
-> **GATE B (human, end of day 7)** — not an agent task. Owner: full slice lifecycle green on scripted attempts; lint zero on the eval set; offline-queue and blocked paths exercised; unknown-skill path exercised once; README honesty text reviewed; shortlog audit; then dogfood days 8–10 (3 days).
+> **GATE B (human, end of day 7)** — not an agent task. Owner: full slice lifecycle green on scripted attempts; lint zero on the eval set; offline-queue and blocked paths exercised; README honesty text reviewed; shortlog audit; then dogfood days 8–10 (3 days).
 
 ---
 

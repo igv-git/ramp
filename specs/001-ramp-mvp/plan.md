@@ -26,7 +26,7 @@ A one-shot Python CLI (`ramp`) with five commands over a local `~/.ramp` home. L
 |---|---|---|
 | I | Output models carry no code fields (`extra="forbid"`, hint max 280 chars); leak lint in CI against a labeled eval set | pass |
 | II | No MVP path writes an earned level; no earned-store module or table exists | pass |
-| III | `matrix` refuses mock descriptors; unknown-skill drafts are frozen only after explicit user approval with a stamp; existing skill entries are never overwritten | pass |
+| III | `matrix` refuses mock descriptors; descriptors are owner-edited law; ramp never drafts or freezes them (unknown-skill path cut 2026-11-17) | pass |
 | IV | Pass rule, FSRS grade map, allowlist, thresholds are pure functions in `gate`/`review`/`runner`; models only produce data; model-authored slice files reach disk only via `gate.apply_slice` after key/path validation (research D18) | pass |
 | V | Human commits limited to law/config/holdout/gates; holdout is human-committed | pass (process) |
 | VI | Each run is test-first (tasks list the test before the code); holdout log append-only | pass |
@@ -65,11 +65,11 @@ src/ramp/
 ├── loop/           # sequencer: init_flow, today_flow, submit_flow, verdict state machine, queue drain
 ├── agents/         # planner.py writer.py reviewer.py grader.py — prompt + output model + typed function(llm_port, input)->model
 ├── providers/      # OpenRouter via pydantic-ai, per-role model, retries, caps, cost meter, offline classification, FakeLLM
-├── gate/           # pass_rule(), apply_review(), apply_grade(), freeze_descriptors(); the only LLM→storage path
+├── gate/           # pass_rule(), apply_review(), apply_grade(); the only LLM→storage path
 ├── runner/         # allowlist validate, run_argv(), generation_time_check(), fingerprint(), git helper (fixed argv)
 ├── review/         # fsrs wrapper: new_card, rate(grade→Rating), due_cards
 ├── plan/           # curriculum model, plan.json IO, unlock, hours sizing, slice scaffolding paths
-├── matrix/         # descriptors+claims loader, mock guard, freeze for approved drafts
+├── matrix/         # descriptors+claims loader, mock guard
 ├── store/          # sqlite schema/migrations, repositories, export writers
 └── lint/           # leak lint: rules + eval-set runner
 tests/
@@ -82,7 +82,7 @@ tests/
 
 | Pin | Decision | Where |
 |---|---|---|
-| Models | `Slice`, `SliceDraft`, `ReviewerOutput`, `GraderOutput`, `Plan`, `DescriptorDraft`, `EligibilityResult` — all `extra="forbid"`, no code fields | data-model.md |
+| Models | `Slice`, `SliceDraft`, `ReviewerOutput`, `GraderOutput`, `Plan`, `EligibilityResult` — all `extra="forbid"`, no code fields | data-model.md |
 | Allowlist | argv grammar: runner ∈ {pytest, python -m pytest, uv run pytest}; program-under-test ∈ {python <file>, python -m <ws-module>, uv run python <file>, uv build}; path args confined to workspace; no `-c`, no shell tokens | contracts/allowlist.md |
 | DB | tables `meta, concepts, cards, card_reviews, slice_state, attempts, teachbacks, bridge_flags`; schema_version 1 | data-model.md |
 | Config | `~/.ramp/config.toml`, roles planner/writer/reviewer/grader, reviewer≠writer validated at load, threshold 3, per-call token caps, per-command and per-day USD caps, prices per model | contracts/config.toml.md |
@@ -105,7 +105,7 @@ tests/
 | R5 Loop core | 4–5 | reviewer, workspace diff (`plan.diff`), leak lint + eval set, gate pass rule, verdict state machine, `today` (brief), `submit`, concept ratings, weak→card creation (template question/rubric), `hints_used` | **Gate A**: sane curriculum, scripted init→today→submit→verdict; hours measured; pass-rule holdout committed by human |
 | R6 Retention | 6 | grader (`grade_card`, `grade_teachback`, `make_card_prompt`), cards-first `today`, teach-back, grade apply | cards due-first; ≥2 weak concepts resurface in a scripted run |
 | R7 Resilience + export | 7 am | offline queue + drain, blocked path, `export` + auto-export, `flag-bridge`, counts printout | scripted offline/blocked/export runs green |
-| R8 Unknown skill + hardening | 7 pm | unknown-skill init (draft→approve→freeze), cost-cap abort, Ctrl-C leaves state consistent, retries/fallbacks, README, lint zero on eval set | **Gate B**; then dogfood days 8–10 |
+| R8 Hardening | 7 pm | cost-cap abort, Ctrl-C leaves state consistent, retries/fallbacks, README, lint zero on eval set | **Gate B**; then dogfood days 8–10 |
 
 Slip rule (manifest §7.3): shorten hardening first; reserve cut list in `critic.md` needs explicit owner approval.
 

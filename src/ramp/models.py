@@ -216,11 +216,6 @@ class EligibilityResult(_Strict):
     per_cando: list[tuple[str, bool]]
 
 
-class DescriptorDraft(_Strict):
-    skill: str
-    levels: dict[int, str]
-
-
 class CandoMap(_Strict):
     cando: str
     concepts: list[str]

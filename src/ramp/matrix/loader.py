@@ -37,13 +37,18 @@ class Descriptors:
 
     def levels(self, skill: str) -> dict[int, str]:
         if skill not in self._data:
-            raise LawError(f"no descriptors for skill {skill!r} in {self.path}")
+            raise LawError(
+                f"no descriptors for skill {skill!r} in {self.path}. Skills defined there: "
+                f"{', '.join(self.skills()) or 'none'}. ramp only plans skills that file defines. To add one, add a "
+                f"`{skill}:` entry with a `1:` and a `2:` level text and keep `_meta: status: approved` "
+                "(README, 'Adding a skill or changing levels')")
         return dict(self._data[skill])
 
     def level_text(self, skill: str, level: int) -> str:
         levels = self.levels(skill)
         if level not in levels:
-            raise LawError(f"no descriptor for {skill} level {level} in {self.path}")
+            raise LawError(f"no descriptor for {skill} level {level} in {self.path}; "
+                           f"levels defined for {skill}: {', '.join(str(n) for n in sorted(levels))}")
         return levels[level]
 
 

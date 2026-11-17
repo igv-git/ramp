@@ -39,16 +39,16 @@ The learner runs `ramp today`, reads a short brief for the current slice (no cod
 
 ### User Story 2 - Plan once: `ramp init` for a skill and target level (Priority: P1)
 
-The learner runs `ramp init --skill <s> --to <n>`. ramp first checks eligibility (can every can-do of the target level be verified by a local command within about a minute?), refuses honestly if not, asks only what the skill matrix cannot answer (honest hours per day, deadline, work goals), then generates a curriculum of vertical slices sized to the stated hours. For a known skill the level definitions are frozen law; for an unknown skill ramp drafts them, the learner approves or edits, and they are frozen with an approval stamp.
+The learner runs `ramp init --skill <s> --to <n>`. ramp first checks eligibility (can every can-do of the target level be verified by a local command within about a minute?), refuses honestly if not, asks only what the skill matrix cannot answer (honest hours per day, deadline, work goals), then generates a curriculum of vertical slices sized to the stated hours. The level definitions are frozen law in `descriptors.yaml`; a skill that is not defined there is refused with a message explaining how to add it by editing that file (owner decision 2026-11-17: the unknown-skill path is cut from the MVP).
 
-**Why this priority**: Without a curriculum there is no loop; the unknown-skill path is the generality proof for the product.
+**Why this priority**: Without a curriculum there is no loop; the planner stays within the language core (no tooling, installs or environments).
 
-**Independent Test**: Run init on python (known) and see a sane curriculum ending in a capstone slice; run init on an unknown skill and see drafted descriptors presented for approval before any curriculum is produced; run init on an uncheckable skill and see a refusal with reasons.
+**Independent Test**: Run init on python (known) and see a sane curriculum ending in a capstone slice; run init on a skill missing from `descriptors.yaml` and see a refusal listing the defined skills and how to add one; run init on an uncheckable skill and see a refusal with reasons.
 
 **Acceptance Scenarios**:
 
 1. **Given** a known skill with approved descriptors, **When** init runs, **Then** a curriculum is produced from the frozen descriptors and the learner's claimed levels are used only to set bridge depth.
-2. **Given** an unknown skill, **When** init runs, **Then** drafted descriptors are shown, nothing is frozen until the learner approves or edits them, and the frozen file carries an approval stamp.
+2. **Given** a skill or level not defined in `descriptors.yaml`, **When** init runs, **Then** it refuses, lists the skills and levels that are defined, and says how to add one; nothing is written.
 3. **Given** a skill whose can-dos cannot be checked locally, **When** init runs, **Then** it refuses with an explanation and creates no curriculum.
 4. **Given** the descriptors file is marked mock rather than approved, **When** init runs, **Then** ramp refuses to treat it as approved law.
 5. **Given** the stated hours/day and deadline, **When** the curriculum is generated, **Then** its total sized effort does not exceed what the hours allow, and missing prerequisites are surfaced, not assumed.
@@ -149,7 +149,7 @@ Every slice must pass checks before reaching the learner: its tests collect with
 
 **Planning (`init`)**
 - **FR-006**: `init` MUST run the eligibility check first; the planner judges, the tool applies the refusal.
-- **FR-007**: For a known skill `init` MUST use frozen descriptors; for an unknown skill it MUST draft descriptors, require learner approval or edit, then freeze them with an approval stamp.
+- **FR-007**: `init` MUST use the frozen descriptors and MUST refuse, with the list of defined skills and the steps to add one, any skill or level they do not define. Slices MUST cover the language core only (the language and its standard library): the planner ignores tooling can-dos and a deterministic scope lint rejects slices that mention tools, installs, environments or versions.
 - **FR-008**: `init` MUST ask only questions the skill matrix cannot answer (honest hours/day, deadline, work goals) and size the curriculum to the stated hours.
 - **FR-009**: Claimed levels MUST only set bridge depth and MUST be labeled as claims; they MUST never be treated as earned.
 - **FR-010**: The system MUST refuse to treat a descriptors file marked mock as approved law.
@@ -205,7 +205,7 @@ Every slice must pass checks before reaching the learner: its tests collect with
 - **SC-004**: Zero leak-lint violations on the labeled eval set, and zero code blocks in stored reviewer feedback (verifiable from logs).
 - **SC-005**: 100% of shipped slices have a logged passing generation-time check.
 - **SC-006**: After re-writing one passed slice with the tab closed, the learner's re-write passes its acceptance checks.
-- **SC-007**: Scripted full-lifecycle runs pass: needs_work → pass → teach-back → unlock; offline queue; blocked path; unknown-skill init exercised once.
+- **SC-007**: Scripted full-lifecycle runs pass: needs_work → pass → teach-back → unlock; offline queue; blocked path.
 - **SC-008**: The pass rule holdout scenario, hidden from the implementer, passes and is logged.
 - **SC-009**: A typical daily session (cards + brief + code + submit + teach-back) fits the stated 45-minute budget, and `today` plus a submit review return in under one minute of tool time excluding the learner's coding.
 - **SC-010**: No human-authored product-code commits; the dogfood report states the contaminated baseline.

@@ -65,10 +65,6 @@ class EligibilityResult(BaseModel):
     reasons: list[str]
     per_cando: list[tuple[str, bool]]   # can-do text, checkable locally in ~1 minute
 
-class DescriptorDraft(BaseModel):
-    skill: str
-    levels: dict[int, str]       # level -> can-do text
-
 class CandoMap(BaseModel):
     cando: str
     concepts: list[str]

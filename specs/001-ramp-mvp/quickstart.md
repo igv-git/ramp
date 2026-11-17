@@ -31,7 +31,7 @@ Expect: refusal while descriptors are `mock`; after approval a curriculum table 
 | 7 | pytest exit 5 with unchanged fingerprint | `blocked` + cause; with edited tests → `needs_work` |
 | 8 | slice with uncollectable / all-green tests | regenerated ≤ 2, then loud stop; `gencheck.log` shows each try |
 | 9 | acceptance `["sh","-c","…"]` | allowlist violation, never executed |
-| 10 | unknown skill init | draft shown, nothing frozen until approval; stamp written |
+| 10 | skill not in descriptors.yaml | refusal lists defined skills and how to add one; nothing written |
 | 11 | export + forced failure in `today` | files + commit; failure printed, `today` exit 0 |
 | 12 | `flag-bridge` valid/invalid | stored+exported / exit 2, nothing stored |
 | 13 | pass-rule holdout (human-written) | passes; logged append-only |

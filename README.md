@@ -76,11 +76,44 @@ ramp asks how many honest hours per day you can spend and for how many days (the
 What happens:
 
 1. **Eligibility check.** ramp asks whether every can-do at your target level can be checked by a local command within about a minute. If not, it tells you why and stops. It would rather refuse than teach something it cannot verify.
+
+   **Scope: language core only.** ramp teaches and checks the language itself and its standard library: syntax, types, control flow, functions, classes, exceptions, text and file I/O. It never sets exercises about installing tools, package managers, virtual environments, interpreter versions, packaging, third-party libraries or infrastructure. Think of a coding kata: you get stub files and a described function, you fill it in, and tests call it. If a can-do in your descriptors is about tooling, ramp ignores it; `init` also rejects any generated slice that mentions tooling and regenerates it.
 2. **Curriculum.** The planner breaks the level into concepts and orders a handful of projects, each ending in something that runs. The total is sized to the hours you stated.
 3. **Slice writing.** The writer produces each slice: a brief of at most 150 words with no code, comparisons to the stack you already know (including where each comparison breaks down), and the tests. Every slice is checked before you see it: its tests must be collectable without your code and must not all pass on an empty project. A slice that fails is regenerated up to twice; if it still fails, `init` stops and tells you why instead of handing you something broken.
 4. You get a table of slices with estimated minutes. Nothing is recorded as a curriculum until every slice has passed its check.
 
 `ramp init` will not overwrite an existing curriculum or your progress.
+
+## Adding a skill or changing levels
+
+ramp has no automatic onboarding for new skills. Everything it plans comes from `descriptors.yaml`, and you edit that file yourself.
+
+1. Edit the committed copy, `docs/spec/descriptors.yaml` in this repository. Add a top-level key for the skill with a text for each level you want. Describe only language-core can-dos (what the learner can write and read, not which tools they run):
+
+   ```yaml
+   _meta:
+     status: approved
+
+   python:
+     1: >-
+       Reads Python: variables, control flow, lists, dicts, tuples, sets, and text file I/O with the standard library.
+     2: >-
+       Writes small programs with the standard library: comprehensions, type hints, classes, exceptions, generators.
+
+   go:
+     1: >-
+       Reads Go: variables, control flow, slices, maps, structs, and file I/O with the standard library.
+   ```
+2. Copy it into ramp's home so ramp sees it: `cp docs/spec/descriptors.yaml ~/.ramp/` (or edit `~/.ramp/descriptors.yaml` directly if you do not need the repository copy).
+3. Optional: add your estimate for related stacks to `claims.yaml` (for example `java: 3`) so the "this is like X" comparisons are the right depth.
+4. Run `ramp init --skill <skill> --to <level>`. If the skill or level is missing, ramp tells you which skills and levels the file defines.
+5. To change levels of a skill that already has a curriculum, `ramp init` refuses (it never overwrites progress). Back up and clear the old one first:
+   ```bash
+   cp -r ~/.ramp ~/.ramp.backup
+   rm -rf ~/.ramp/stacks ~/.ramp/slices ~/.ramp/profile.db
+   ```
+
+Honest limit: today every check runs through pytest, so a skill only works if its exercises can be tested that way. A skill that needs another test runner (for example `cargo test` or `ng test`) will not produce slices until the command allowlist is extended, which is a deliberate project decision and not a config option.
 
 ## The daily loop
 
@@ -129,6 +162,8 @@ If a failure is not your code's fault (a broken generated test, a timeout, a pro
 | `roles.reviewer.model must differ from roles.writer.model` | Pick a different reviewer model. |
 | `init failed: ... not checkable by local commands` | The skill or level cannot be taught this way; ramp lists the reasons. |
 | `could not produce a valid slice S3: ...` | The model kept writing a slice that failed the pre-flight check. Run `init` again; see `~/.ramp/slices/NN/gencheck.log` for the cause. |
+| `no descriptors for skill 'x'` / `no descriptor for ... level n` | The skill or level is not in `~/.ramp/descriptors.yaml`. See "Adding a skill or changing levels". |
+| `could not produce a curriculum within the language core...` / `... mentions 'uv'...` | The model kept planning or writing tooling topics. Run `init` again; if your descriptor text itself is about tools, rewrite it to language-core can-dos. |
 | `a curriculum already exists` | `init` never overwrites progress. To start over deliberately, remove `~/.ramp/stacks`, `~/.ramp/slices` and `~/.ramp/profile.db` yourself. |
 | cost cap reached | Raise the caps in `config.toml`, or wait for the next day's budget. |
 
@@ -149,7 +184,15 @@ jq -r 'select(.ok==false) | .messages[]?.parts[]? | select(.part_kind=="tool-ret
 jq 'select(.role=="writer") | {user, output}' ~/.ramp/logs/llm-*.jsonl | less
 ```
 
-Turn it off with `trace_llm = false` under `[debug]` in `config.toml`. Delete old files whenever you like.
+To see what the model calls cost (needs jq):
+
+```bash
+jq -s 'group_by(.role)|map({role:.[0].role, calls:length, tokens_in:(map(.tokens_in)|add), tokens_out:(map(.tokens_out)|add), usd:(map(.cost_usd)|add)})' ~/.ramp/logs/llm-*.jsonl
+```
+
+To keep reviews cheap, ramp skips the model when nothing differs from the starter files, reuses the earlier review when you submit identical code with identical test output, and (default in a new config) sets `thinking = false` on the `reviewer` and `grader` roles so the model does not spend output tokens on hidden reasoning. That setting only applies to the native Anthropic endpoint (`base_url = "https://api.anthropic.com"`); add `thinking = false` to a role in `config.toml` to use it on an existing config.
+
+Turn tracing off with `trace_llm = false` under `[debug]` in `config.toml`. Delete old files whenever you like.
 
 ## What ramp is not
 
