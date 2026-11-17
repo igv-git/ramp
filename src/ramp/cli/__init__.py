@@ -123,6 +123,8 @@ def submit_cmd(ctx: typer.Context) -> None:
         console.print(Text(f"  {' '.join(argv)}  ->  {state}"))
     for note in out.layout_notes:
         console.print(Text(f"Layout: {note}", style="yellow"))
+    if out.reused_review:
+        console.print(Text("Same code and test output as an earlier submit: reusing that review (no model call)."))
     if out.fingerprint_changed:
         console.print(Text("Note: the test or fixture files differ from the shipped ones (logged, not blocked)."))
     if out.status == "blocked":

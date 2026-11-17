@@ -48,3 +48,18 @@ def test_other_hosts_are_unchanged():
     rc = RoleConfig(base_url="https://openrouter.ai/api/v1", api_key_env="K", model="openai/m",
                     max_input_tokens=1, max_output_tokens=1)
     assert isinstance(_default_model(rc, "k"), OpenAIChatModel)
+
+
+def _rc(url, thinking):
+    return RoleConfig(base_url=url, api_key_env="K", model="m", max_input_tokens=1, max_output_tokens=7,
+                      thinking=thinking)
+
+
+def test_thinking_false_disables_thinking_on_native_anthropic_only():
+    from ramp.providers.openrouter import _model_settings
+
+    assert _model_settings(_rc("https://api.anthropic.com", False)) == {
+        "max_tokens": 7, "anthropic_thinking": {"type": "disabled"}}
+    assert _model_settings(_rc("https://api.anthropic.com", None)) == {"max_tokens": 7}
+    assert _model_settings(_rc("https://api.anthropic.com", True)) == {"max_tokens": 7}
+    assert _model_settings(_rc("https://openrouter.ai/api/v1", False)) == {"max_tokens": 7}

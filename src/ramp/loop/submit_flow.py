@@ -43,6 +43,7 @@ class SubmitOutcome:
     fingerprint_changed: bool = False
     understanding_check: str = ""
     layout_notes: list[str] = field(default_factory=list)
+    reused_review: bool = False
 
 
 def classify_run(results: list, shipped_fp: str, attempt_fp: str) -> tuple[str, str | None]:
@@ -109,6 +110,15 @@ def _review_with_lint(ctx, *, brief, diff, test_output, concepts, layout_notes=N
     return _sanitize(out)
 
 
+def _previous_review(store, slice_id: str, diff: str, test_output: str, current_id: int) -> ReviewerOutput | None:
+    """The stored review of an earlier attempt with the same code and the same test output, if any."""
+    for row in reversed(store.list_attempts(slice_id)):
+        if (row["id"] != current_id and row["status"] == "reviewed" and row["review_json"]
+                and row["diff"] == diff and row["test_output"] == test_output):
+            return ReviewerOutput.model_validate_json(row["review_json"])
+    return None
+
+
 def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> SubmitOutcome:
     found = current_slice(ctx)
     if found is None:
@@ -144,9 +154,17 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
         return blocked(output, cause, results)
 
     attempt_id = stored(output, "pending_review")
+    commands = [(r.argv, r.exit_code) for r in results]
+    if not diff.strip():  # nothing written yet: no model call, no cards
+        store.update_attempt(attempt_id, status="reviewed", passed=0, verdict="needs_work")
+        return SubmitOutcome(
+            "reviewed", attempt_id, verdict="needs_work", commands=commands, fingerprint_changed=bool(changed),
+            layout_notes=notes,
+            reasons=["nothing in workspace/src differs from the starter files yet; write your code there"])
     concepts = [c for c in plan.concepts if c.id in slice_.concepts]
+    reused = _previous_review(store, slice_.id, diff, output, attempt_id)
     try:
-        review = _review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts,
+        review = reused or _review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts,
                                  layout_notes=notes)
     except ProviderError as e:
         store.update_attempt(attempt_id, status="blocked", blocked_cause=f"provider: {e}")
@@ -159,5 +177,6 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
         "reviewed", attempt_id, verdict="pass" if res.passed else "needs_work", passed=res.passed,
         issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts, unlocked=res.unlocked,
         commands=[(r.argv, r.exit_code) for r in results], fingerprint_changed=bool(changed),
-        understanding_check=review.understanding_check, layout_notes=notes)
+        understanding_check=review.understanding_check, layout_notes=notes,
+        reused_review=reused is not None)
 

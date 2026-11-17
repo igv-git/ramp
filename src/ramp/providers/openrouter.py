@@ -31,6 +31,14 @@ def _default_model(rc, api_key: str):
     return OpenAIChatModel(rc.model, provider=provider)
 
 
+def _model_settings(rc) -> dict:
+    settings: dict = {"max_tokens": rc.max_output_tokens}
+    host = urlparse(rc.base_url).hostname or ""
+    if rc.thinking is False and host.endswith("anthropic.com"):
+        settings["anthropic_thinking"] = {"type": "disabled"}  # structured roles: no hidden reasoning tokens
+    return settings
+
+
 class OpenRouterTransport:
     def __init__(self, model_factory: Callable | None = None):
         self._model_factory = model_factory or _default_model
@@ -43,7 +51,7 @@ class OpenRouterTransport:
             self._model_factory(rc, api_key),
             output_type=output_type,
             system_prompt=system,
-            model_settings={"max_tokens": rc.max_output_tokens},
+            model_settings=_model_settings(rc),
             retries=OUTPUT_RETRIES,  # strict output models: give the model several tries to satisfy them
         )
 

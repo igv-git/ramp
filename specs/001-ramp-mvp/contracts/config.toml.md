@@ -53,4 +53,6 @@ usd_per_mtok_out = 0.0
 
 **Validation rules**: all four roles present; `roles.reviewer.model != roles.writer.model` (error otherwise); `model` not starting with `REPLACE_ME` when a call is attempted (clear message naming the file and key); `pass_threshold` in 0..5; caps > 0; `base_url` https, or http only for loopback (local endpoints allowed, Art. VIII); unknown keys are errors. A local endpoint (Ollama / LM Studio) is a valid `base_url`; its `api_key_env` may be empty.
 
+**Optional `thinking`** (per role, bool, default unset): `thinking = false` asks the provider not to spend output tokens on hidden reasoning. It is applied only on the native Anthropic endpoint (`base_url` host ends with `anthropic.com`, sent as `thinking: {type: disabled}`) and ignored elsewhere. The generated default sets it to `false` for `reviewer` and `grader`, whose replies are short structured data.
+
 **Egress**: `providers` sends brief + diff + test output (submit) and written answers (cards, teach-back); nothing else.

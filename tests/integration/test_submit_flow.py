@@ -67,6 +67,7 @@ def test_today_without_curriculum(law_home):
 # ---- submit
 def test_wrong_code_gets_locate_only_hints(curriculum):
     ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     out = sf.run_submit(ctx)
     assert out.status == "reviewed" and out.verdict == "needs_work" and not out.passed
@@ -116,6 +117,7 @@ def test_reviewer_receives_brief_diff_and_test_output(curriculum):
 
 def test_lint_violation_is_regenerated_then_clean_hint_is_kept(curriculum):
     ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CODE_ISSUE], verdict="needs_work"),
                                  b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     out = sf.run_submit(ctx)
@@ -125,6 +127,7 @@ def test_lint_violation_is_regenerated_then_clean_hint_is_kept(curriculum):
 
 def test_three_violations_fall_back_to_a_generic_hint_without_code(curriculum):
     ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
     fence = ("src/wc/__init__.py:1", "returns nothing", "```python\nreturn {}\n```")
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CODE_ISSUE, fence], verdict="needs_work")] * 3
     out = sf.run_submit(ctx)
@@ -158,6 +161,7 @@ def test_edited_tests_turn_the_same_failure_into_needs_work(curriculum):
 
 def test_provider_failure_is_blocked_with_cause(curriculum):
     ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
     llm.responses["reviewer"] = [ProviderFailed("provider failed for role 'reviewer'")]
     out = sf.run_submit(ctx)
     assert out.status == "blocked" and "provider" in out.blocked_cause
@@ -192,3 +196,35 @@ def test_submit_without_curriculum_or_after_the_end(curriculum, law_home):
     ctx.store.set_slice_state("S2", "python", "passed")
     with pytest.raises(sf.NothingToSubmit):
         sf.run_submit(ctx)
+
+
+def test_empty_diff_gets_needs_work_without_a_model_call_or_cards(curriculum):
+    ctx, llm = curriculum
+    out = sf.run_submit(ctx)
+    assert out.status == "reviewed" and out.verdict == "needs_work" and not out.passed
+    assert llm.calls == [] and "starter files" in out.reasons[0]
+    row = ctx.store.get_attempt(out.attempt_id)
+    assert row["status"] == "reviewed" and row["passed"] == 0 and row["review_json"] is None
+    assert ctx.store.all_cards() == []
+
+
+def test_identical_resubmit_reuses_the_stored_review(curriculum):
+    ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
+    llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
+    first = sf.run_submit(ctx)
+    again = sf.run_submit(ctx)
+    assert len(llm.calls) == 1 and again.reused_review and not first.reused_review
+    assert [i.hint for i in again.issues] == [i.hint for i in first.issues]
+    assert again.attempt_id != first.attempt_id
+
+
+def test_changed_code_is_reviewed_again(curriculum):
+    ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
+    llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work"),
+                                 b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
+    sf.run_submit(ctx)
+    write_solution(ctx.home, "def count(text):\n    return {'x': 1}\n")
+    again = sf.run_submit(ctx)
+    assert len(llm.calls) == 2 and not again.reused_review

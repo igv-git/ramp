@@ -20,7 +20,8 @@ def test_today_prints_brief_bridges_and_workspace(curriculum):
 
 
 def test_submit_needs_work_prints_locate_only_hints(curriculum):
-    _ctx, llm = curriculum
+    ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     res = invoke(["submit"], llm)
     assert res.exit_code == 0, res.output
@@ -50,7 +51,8 @@ def test_submit_green_tests_but_low_rating_explains_why(curriculum):
 def test_submit_blocked_exits_1_with_cause_and_next_step(curriculum):
     from ramp.providers.port import ProviderFailed
 
-    _ctx, llm = curriculum
+    ctx, llm = curriculum
+    write_solution(ctx.home, b.WRONG)
     llm.responses["reviewer"] = [ProviderFailed("provider failed for role 'reviewer'")]
     res = invoke(["submit"], llm)
     assert res.exit_code == 1

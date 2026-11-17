@@ -203,3 +203,21 @@ def test_draft_has_the_same_brief_rules_as_a_slice():
 
 def test_draft_carries_no_identity_fields():
     assert not {"id", "index", "concepts", "est_minutes", "status"} & set(m.SliceDraft.model_fields)
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("src/a.py:4-5", "src/a.py:4"),
+    ("src/a.py:9 uses an f-string; src/b.py:4 is typed", "src/a.py:9"),
+    (".python-version:1 pins 3.", ".python-version:1"),
+    ("  src/a.py:3  ", "src/a.py:3"),
+    ("src/a.py:3", "src/a.py:3"),
+])
+def test_evidence_keeps_the_first_location(raw, expected):
+    r = m.ConceptRating(concept="c", rating=3, evidence=raw, delta_reason="r")
+    assert r.evidence == expected
+
+
+@pytest.mark.parametrize("ev", ["see the function in src/a.py:3", "the whole file", "line 3"])
+def test_evidence_without_a_leading_location_is_still_rejected(ev):
+    with pytest.raises(ValidationError):
+        m.ConceptRating(concept="c", rating=3, evidence=ev, delta_reason="r")

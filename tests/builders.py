@@ -65,6 +65,7 @@ CLEAN_ISSUE = ("src/wc/__init__.py:1", "count returns nothing for the sample inp
                "src/wc/__init__.py:1 returns before it reads the words. Trace what the function hands back.")
 CODE_ISSUE = ("src/wc/__init__.py:1", "count returns nothing", "At src/wc/__init__.py:1 replace the loop with a comprehension.")
 
+WRONG = "def count(text):\n    return {}\n"
 SOLUTION = (
     "def count(text):\n"
     "    out = {}\n"

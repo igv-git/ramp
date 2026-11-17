@@ -45,6 +45,9 @@ class RoleConfig(_Strict):
     max_output_tokens: int = Field(gt=0)
     usd_per_mtok_in: float = Field(default=0.0, ge=0)
     usd_per_mtok_out: float = Field(default=0.0, ge=0)
+    # false = ask the provider not to spend output tokens on hidden reasoning (native Anthropic only);
+    # unset = the provider's default
+    thinking: bool | None = None
 
     @model_validator(mode="after")
     def _check_url(self):
@@ -98,7 +101,8 @@ def load_config(path: Path) -> Config:
 def default_toml() -> str:
     """Default config.toml. Contains no secrets: the API key lives in the named environment variable."""
 
-    def role(model: str, max_in: int, max_out: int) -> str:
+    def role(model: str, max_in: int, max_out: int, thinking: bool | None = None) -> str:
+        think = "" if thinking is None else f"thinking = {str(thinking).lower()}\n"
         return (
             'base_url = "https://openrouter.ai/api/v1"\n'
             'api_key_env = "OPENROUTER_API_KEY"\n'
@@ -106,7 +110,7 @@ def default_toml() -> str:
             f"max_input_tokens = {max_in}\n"
             f"max_output_tokens = {max_out}\n"
             "usd_per_mtok_in = 0.0\n"
-            "usd_per_mtok_out = 0.0\n"
+            "usd_per_mtok_out = 0.0\n" + think
         )
 
     return (
@@ -121,8 +125,8 @@ def default_toml() -> str:
         "trace_llm = true\n\n"
         f"[roles.planner]  # strong\n{role(PLACEHOLDER, 24000, 12000)}\n"
         f"[roles.writer]  # strong\n{role(PLACEHOLDER, 24000, 16000)}\n"
-        f"[roles.reviewer]  # must differ from the writer\n{role(PLACEHOLDER + '_DIFFERENT', 24000, 8000)}\n"
-        f"[roles.grader]  # cheap\n{role(PLACEHOLDER + '_CHEAP', 6000, 2000)}"
+        f"[roles.reviewer]  # must differ from the writer\n{role(PLACEHOLDER + '_DIFFERENT', 24000, 8000, thinking=False)}\n"
+        f"[roles.grader]  # cheap\n{role(PLACEHOLDER + '_CHEAP', 6000, 2000, thinking=False)}"
     )
 
 

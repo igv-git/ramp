@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _EVIDENCE = re.compile(r"^[\w./-]+:\d+$")
+_EVIDENCE_FIRST = re.compile(r"[\w./-]+:\d+")  # anchored with .match(): the value must START with the location
 _FILE_PREFIXES = ("tests/", "fixtures/", "expected/", "src/")
 
 
@@ -166,6 +167,17 @@ class ConceptRating(_Strict):
     rating: int = Field(ge=0, le=5)
     evidence: str
     delta_reason: str = Field(max_length=200)
+
+    @field_validator("evidence", mode="before")
+    @classmethod
+    def _first_location(cls, v):
+        """Models often write `file:4-5` or add prose after the location. Keep the first `path:line`
+        instead of paying for a retry round trip; text with no location is still rejected below."""
+        if isinstance(v, str):
+            m = _EVIDENCE_FIRST.match(v.strip())
+            if m:
+                return m.group(0)
+        return v
 
     @field_validator("evidence")
     @classmethod

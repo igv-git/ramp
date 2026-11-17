@@ -32,3 +32,13 @@ def test_write_default_does_not_overwrite(tmp_home):
     p.write_text("# mine\n")
     config.write_default(tmp_home)
     assert p.read_text() == "# mine\n"
+
+
+def test_default_config_turns_thinking_off_for_reviewer_and_grader_only():
+    import tomllib
+
+    from ramp import config
+
+    roles = tomllib.loads(config.default_toml())["roles"]
+    assert roles["reviewer"]["thinking"] is False and roles["grader"]["thinking"] is False
+    assert "thinking" not in roles["planner"] and "thinking" not in roles["writer"]
