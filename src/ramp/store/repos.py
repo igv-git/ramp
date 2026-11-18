@@ -163,6 +163,9 @@ class Store:
         self.conn.execute("UPDATE teachbacks SET grade=? WHERE attempt_id=?", (grade, attempt_id))
         self._commit()
 
+    def list_teachbacks(self):
+        return self.conn.execute("SELECT * FROM teachbacks ORDER BY attempt_id").fetchall()
+
     def get_teachback(self, attempt_id: int):
         return self.conn.execute("SELECT * FROM teachbacks WHERE attempt_id=?", (attempt_id,)).fetchone()
 

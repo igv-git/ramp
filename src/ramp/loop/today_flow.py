@@ -9,6 +9,7 @@ from ramp import gate, paths
 from ramp import review as fsrs_review
 from ramp.agents import grader
 from ramp.lint.leak import check_text
+from ramp.loop import queue
 from ramp.models import GraderOutput, Plan, Slice
 from ramp.plan import curriculum
 
@@ -36,6 +37,7 @@ class TodayView:
     finished: bool = False
     message: str = ""
     cards: list[CardView] = field(default_factory=list)
+    drained: list[str] = field(default_factory=list)
 
 
 def current_slice(ctx) -> tuple[Plan, Slice, Path] | None:
@@ -59,6 +61,13 @@ def clean_graded(graded: GraderOutput) -> GraderOutput:
 
 
 def run_today(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> TodayView:
+    drained = queue.drain(ctx, clock)
+    view = _today(ctx, clock)
+    view.drained = drained
+    return view
+
+
+def _today(ctx, clock: Callable[[], datetime]) -> TodayView:
     found = current_slice(ctx)
     cards = []
     for row in fsrs_review.due_cards(ctx.store, clock()):

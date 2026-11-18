@@ -9,19 +9,23 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from ramp import gate
-from ramp.agents import grader, reviewer
-from ramp.lint.leak import check_hint, check_text, fallback_hint
+from ramp.agents import grader
+from ramp.loop import queue
+from ramp.loop.review_step import (
+    make_prompt,
+    previous_review,
+    result_trailer,
+    review_with_lint,
+)
 from ramp.loop.today_flow import clean_graded, current_slice
-from ramp.models import CardPrompt, GraderOutput, Issue, ReviewerOutput
+from ramp.models import GraderOutput, Issue
 from ramp.plan.diff import layout_notes, workspace_diff
-from ramp.providers.port import ProviderError
+from ramp.providers.port import ProviderError, ProviderOffline
 from ramp.runner import exec as rexec
 from ramp.runner.allowlist import AllowlistViolation, validate_all
 from ramp.runner.fingerprint import fingerprint
 
 _PYTEST_BROKEN = {2, 3, 4, 5}
-_GENERIC_CHECK = "In your own words, what does your code do at the places flagged above?"
-_GENERIC_REASON = "see the evidence location"
 
 
 class NothingToSubmit(Exception):
@@ -30,7 +34,7 @@ class NothingToSubmit(Exception):
 
 @dataclass
 class SubmitOutcome:
-    status: str  # "reviewed" | "blocked"
+    status: str  # "reviewed" | "blocked" | "queued"
     attempt_id: int
     verdict: str | None = None
     passed: bool = False
@@ -46,6 +50,7 @@ class SubmitOutcome:
     reused_review: bool = False
     needs_teachback: bool = False
     teachback_question: str = ""
+    drained: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -79,65 +84,8 @@ def _test_output(results: list) -> str:
     for r in results:
         state = "timed out" if r.timed_out else "could not start" if r.start_failed else f"exit {r.exit_code}"
         parts.append(f"$ {' '.join(r.argv)}\n{r.output}\n[{state}]")
+    parts.append(result_trailer(all(r.exit_code == 0 for r in results)))
     return "\n\n".join(parts)
-
-
-def _violations(out: ReviewerOutput) -> list[str]:
-    bad: list[str] = []
-    for i, issue in enumerate(out.issues, start=1):
-        bad += [f"hint {i}: {r}" for r in check_hint(issue.hint, issue.location).rules]
-        bad += [f"symptom {i}: {r}" for r in check_text(issue.symptom).rules]
-    bad += [f"understanding_check: {r}" for r in check_text(out.understanding_check).rules]
-    for r in out.concept_ratings:
-        bad += [f"reason for {r.concept}: {x}" for x in check_text(r.delta_reason).rules]
-    return bad
-
-
-def _sanitize(out: ReviewerOutput) -> ReviewerOutput:
-    """After the regeneration limit: replace offending text with generic, lint-clean text built from fields."""
-    issues = []
-    for issue in out.issues:
-        symptom = issue.symptom if check_text(issue.symptom).ok else "this part does not behave as the brief describes"
-        hint = issue.hint
-        if not check_hint(hint, issue.location).ok:
-            hint = fallback_hint(issue.location, symptom, issue.concept)
-        issues.append(issue.model_copy(update={"symptom": symptom, "hint": hint}))
-    check = out.understanding_check if check_text(out.understanding_check).ok else _GENERIC_CHECK
-    ratings = [r if check_text(r.delta_reason).ok else r.model_copy(update={"delta_reason": _GENERIC_REASON})
-               for r in out.concept_ratings]
-    return ReviewerOutput.model_validate(out.model_copy(update={
-        "issues": issues, "understanding_check": check, "concept_ratings": ratings}).model_dump())
-
-
-def _review_with_lint(ctx, *, brief, diff, test_output, concepts, layout_notes=None) -> ReviewerOutput:
-    feedback, out = None, None
-    for _ in range(1 + ctx.config.caps.max_regenerations):
-        out = reviewer.review_attempt(ctx.llm, brief=brief, diff=diff, test_output=test_output,
-                                      concepts=concepts, feedback=feedback, layout_notes=layout_notes)
-        bad = _violations(out)
-        if not bad:
-            return out
-        feedback = "these parts broke the locate-only rules: " + "; ".join(bad)
-    return _sanitize(out)
-
-
-def _previous_review(store, slice_id: str, diff: str, test_output: str, current_id: int) -> ReviewerOutput | None:
-    """The stored review of an earlier attempt with the same code and the same test output, if any."""
-    for row in reversed(store.list_attempts(slice_id)):
-        if (row["id"] != current_id and row["status"] == "reviewed" and row["review_json"]
-                and row["diff"] == diff and row["test_output"] == test_output):
-            return ReviewerOutput.model_validate_json(row["review_json"])
-    return None
-
-
-def _make_prompt(ctx) -> Callable[[str, str | None], CardPrompt | None]:
-    """Card prompts come from the grader when it is reachable; otherwise gate keeps its deterministic template."""
-    def make(name: str, note: str | None) -> CardPrompt | None:
-        try:
-            return grader.make_card_prompt(ctx.llm, concept=name, bridge_note=note)
-        except ProviderError:
-            return None
-    return make
 
 
 def teachback_question(title: str, understanding_check: str) -> str:
@@ -159,12 +107,19 @@ def complete_teachback(ctx, outcome: SubmitOutcome, answer: str,
     except ProviderError:
         graded = None
     res = gate.apply_teachback(ctx.store, attempt_id=outcome.attempt_id, slice=slice_, answer=answer,
-                               graded=graded, now=clock(), make_prompt=_make_prompt(ctx))
+                               graded=graded, now=clock(), make_prompt=make_prompt(ctx))
     return TeachbackOutcome(res.grade, graded.rationale if graded else "", res.unlocked, res.cards_created,
                             finished=res.unlocked is None)
 
 
 def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> SubmitOutcome:
+    drained = queue.drain(ctx, clock)
+    out = _submit(ctx, clock)
+    out.drained = drained
+    return out
+
+
+def _submit(ctx, clock: Callable[[], datetime]) -> SubmitOutcome:
     found = current_slice(ctx)
     if found is None:
         raise NothingToSubmit("there is no current slice: the curriculum is finished")
@@ -207,10 +162,13 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
             layout_notes=notes,
             reasons=["nothing in workspace/src differs from the starter files yet; write your code there"])
     concepts = [c for c in plan.concepts if c.id in slice_.concepts]
-    reused = _previous_review(store, slice_.id, diff, output, attempt_id)
+    reused = previous_review(store, slice_.id, diff, output, attempt_id)
     try:
-        review = reused or _review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts,
+        review = reused or review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts,
                                  layout_notes=notes)
+    except ProviderOffline:  # no route to the provider: keep the attempt as pending_review for the drain
+        return SubmitOutcome("queued", attempt_id, commands=commands, fingerprint_changed=bool(changed),
+                             layout_notes=notes)
     except ProviderError as e:
         store.update_attempt(attempt_id, status="blocked", blocked_cause=f"provider: {e}")
         return SubmitOutcome("blocked", attempt_id, blocked_cause=f"provider: {e}",
@@ -218,7 +176,7 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
                              layout_notes=notes)
     res = gate.apply_review(store, attempt_id=attempt_id, slice=slice_, review=review, all_green=kind == "green",
                             threshold=ctx.config.gate.pass_threshold, now=clock(),
-                            make_prompt=_make_prompt(ctx))
+                            make_prompt=make_prompt(ctx))
     return SubmitOutcome(
         "reviewed", attempt_id, verdict="pass" if res.passed else "needs_work", passed=res.passed,
         issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts,

@@ -12,10 +12,11 @@ from rich.text import Text
 from ramp import paths
 from ramp.cli import wiring
 from ramp.config import ConfigError, write_default
-from ramp.loop import init_flow, submit_flow, today_flow
+from ramp.loop import export_flow, flag_flow, init_flow, submit_flow, today_flow
 from ramp.matrix import LawError
 from ramp.providers.port import ProviderError
 from ramp.runner.git_helper import init_repo
+from ramp.store import export as export_store
 
 app = typer.Typer(help="ramp — onboard onto a new stack through daily micro-projects.", no_args_is_help=True)
 console = Console()
@@ -79,13 +80,23 @@ def init_cmd(
     console.print(f"Total {total} min of {budget:.0f} min available. Run `ramp today` to start.")
 
 
-def _not_yet(name: str) -> Callable:
-    def command(ctx: typer.Context) -> None:
-        """Placeholder until this command's run lands."""
-        _context(ctx, paths.home()).store.close()
-        raise _fail(f"`ramp {name}` is not available yet in this build.")
+def _print_drained(lines: list[str]) -> None:
+    for line in lines:
+        console.print(Text(line, style="yellow" if line.startswith(("Still", "Queued")) else ""))
 
-    return command
+
+def _auto_export(context) -> None:
+    """End-of-command export: a failure is printed and never changes the command's exit status."""
+    failure = export_flow.auto_export(context)
+    if failure:
+        typer.echo(f"export failed: {failure}", err=True)
+
+
+def _auto_export_if_open(context) -> None:
+    try:
+        _auto_export(context)
+    finally:
+        context.store.close()
 
 
 def _ask(label: str) -> str:
@@ -114,11 +125,12 @@ def today_cmd(ctx: typer.Context) -> None:
     context = _context(ctx, paths.home())
     try:
         view = today_flow.run_today(context)
+        _print_drained(view.drained)
         _review_cards(context, view)
     except today_flow.NoCurriculum as e:
         raise _fail(str(e)) from None
     finally:
-        context.store.close()
+        _auto_export_if_open(context)
     if view.finished:
         console.print(Text(view.message))
         return
@@ -162,11 +174,12 @@ def submit_cmd(ctx: typer.Context) -> None:
             out = submit_flow.run_submit(context)
         except (submit_flow.NothingToSubmit, today_flow.NoCurriculum) as e:
             raise _fail(str(e)) from None
+        _print_drained(out.drained)
         _print_submit(out)
         if out.passed and out.needs_teachback:
             _teach_back(context, out)
     finally:
-        context.store.close()
+        _auto_export_if_open(context)
 
 
 def _print_submit(out) -> None:
@@ -179,9 +192,16 @@ def _print_submit(out) -> None:
         console.print(Text("Same code and test output as an earlier submit: reusing that review (no model call)."))
     if out.fingerprint_changed:
         console.print(Text("Note: the test or fixture files differ from the shipped ones (logged, not blocked)."))
+    if out.status == "queued":
+        console.print(Text("The provider is unreachable, so your review is queued. The tests ran and your attempt "
+                           "is saved; the slice stays where it is. The next `ramp today` or `ramp submit` reviews it "
+                           "once the provider is back."))
+        return
     if out.status == "blocked":
-        typer.echo(f"Blocked: {out.blocked_cause}\nThis is not counted against you. Fix the cause and run "
-                   "`ramp submit` again.", err=True)
+        cause = out.blocked_cause or ""
+        advice = ("check your network, the API key and the spending caps in config.toml, then run `ramp submit` "
+                  "again" if cause.startswith("provider") else "fix the cause, then run `ramp submit` again")
+        typer.echo(f"Blocked: {cause}\nThis is not counted against you. What to try: {advice}.", err=True)
         raise typer.Exit(1)
     if out.passed:
         console.print(Text("Passed.", style="bold green"))
@@ -196,8 +216,15 @@ def _print_submit(out) -> None:
 
 
 def export_cmd(ctx: typer.Context) -> None:
-    """Write the plain-text snapshot and commit it."""
-    _not_yet("export")(ctx)
+    """Write the plain-text snapshot, commit it and print the counts."""
+    context = _context(ctx, paths.home())
+    try:
+        counts = export_flow.run_export(context)
+    except export_flow.ExportFailed as e:
+        raise _fail(f"export failed: {e}") from None
+    finally:
+        context.store.close()
+    console.print(Text(export_store.format_counts(counts)))
 
 
 def flag_bridge_cmd(
@@ -207,7 +234,17 @@ def flag_bridge_cmd(
     note: str | None = typer.Option(None, "--note"),
 ) -> None:
     """Mark a bridge (comparison) that misled you."""
-    _not_yet("flag-bridge")(ctx)
+    context = _context(ctx, paths.home())
+    try:
+        try:
+            flag_flow.flag_bridge(context, slice_id.strip(), bridge_no, note)
+        except flag_flow.FlagRefused as e:
+            typer.echo(str(e), err=True)
+            raise typer.Exit(2) from None
+        console.print(Text(f"Flagged bridge {bridge_no} of {slice_id.strip()}."))
+        _auto_export(context)
+    finally:
+        context.store.close()
 
 
 # One dispatch table: parked features (chat, stats) register here later without touching the commands above.

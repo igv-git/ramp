@@ -28,6 +28,9 @@ def law_home(tmp_home):
     (tmp_home / "config.toml").write_text(good_config_text())
     shutil.copy(SPEC / "descriptors.yaml", tmp_home / "descriptors.yaml")
     shutil.copy(SPEC / "claims.yaml", tmp_home / "claims.yaml")
+    from ramp.runner.git_helper import init_repo
+
+    init_repo(tmp_home)  # commands end with an automatic export, which commits into this repository
     return tmp_home
 
 
