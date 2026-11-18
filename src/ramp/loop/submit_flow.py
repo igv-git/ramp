@@ -12,6 +12,7 @@ from ramp import gate
 from ramp.agents import grader
 from ramp.loop import queue
 from ramp.loop.review_step import (
+    INTERRUPTED,
     make_prompt,
     previous_review,
     result_trailer,
@@ -133,14 +134,26 @@ def _submit(ctx, clock: Callable[[], datetime]) -> SubmitOutcome:
     diff = workspace_diff(slice_dir)
     notes = layout_notes(slice_dir)
 
-    def stored(output: str, status: str, cause: str | None = None) -> int:
-        return store.add_attempt(slice_id=slice_.id, ts=clock().isoformat(), test_output=output, diff=diff,
-                                 status=status, blocked_cause=cause, fingerprint=attempt_fp,
-                                 fingerprint_changed=changed)
+    # The attempt exists from the start, so an interrupt always has a row to settle (never left pending_review).
+    attempt_id = store.add_attempt(slice_id=slice_.id, ts=clock().isoformat(), test_output="", diff=diff,
+                                   status="pending_review", fingerprint=attempt_fp, fingerprint_changed=changed)
+    try:
+        return _run_attempt(ctx, clock, plan, slice_, workspace, attempt_id, shipped, attempt_fp, changed, diff, notes)
+    except KeyboardInterrupt:
+        row = store.get_attempt(attempt_id)
+        if row is not None and row["status"] == "pending_review":
+            store.update_attempt(attempt_id, status="blocked", blocked_cause=INTERRUPTED)
+        raise
+
+
+def _run_attempt(ctx, clock, plan, slice_, workspace, attempt_id, shipped, attempt_fp, changed, diff,
+                 notes) -> SubmitOutcome:
+    store = ctx.store
+    argvs = [c.argv for c in slice_.acceptance]
 
     def blocked(output: str, cause: str, results: list) -> SubmitOutcome:
-        aid = stored(output, "blocked", cause)
-        return SubmitOutcome("blocked", aid, blocked_cause=cause, fingerprint_changed=bool(changed),
+        store.update_attempt(attempt_id, test_output=output, status="blocked", blocked_cause=cause)
+        return SubmitOutcome("blocked", attempt_id, blocked_cause=cause, fingerprint_changed=bool(changed),
                              commands=[(r.argv, r.exit_code) for r in results], layout_notes=notes)
 
     try:
@@ -153,7 +166,7 @@ def _submit(ctx, clock: Callable[[], datetime]) -> SubmitOutcome:
     if kind == "blocked":
         return blocked(output, cause, results)
 
-    attempt_id = stored(output, "pending_review")
+    store.update_attempt(attempt_id, test_output=output)
     commands = [(r.argv, r.exit_code) for r in results]
     if not diff.strip():  # nothing written yet: no model call, no cards
         store.update_attempt(attempt_id, status="reviewed", passed=0, verdict="needs_work")
@@ -165,23 +178,19 @@ def _submit(ctx, clock: Callable[[], datetime]) -> SubmitOutcome:
     reused = previous_review(store, slice_.id, diff, output, attempt_id)
     try:
         review = reused or review_with_lint(ctx, brief=slice_.brief, diff=diff, test_output=output, concepts=concepts,
-                                 layout_notes=notes)
+                                            layout_notes=notes)
     except ProviderOffline:  # no route to the provider: keep the attempt as pending_review for the drain
         return SubmitOutcome("queued", attempt_id, commands=commands, fingerprint_changed=bool(changed),
                              layout_notes=notes)
     except ProviderError as e:
         store.update_attempt(attempt_id, status="blocked", blocked_cause=f"provider: {e}")
         return SubmitOutcome("blocked", attempt_id, blocked_cause=f"provider: {e}",
-                             fingerprint_changed=bool(changed), commands=[(r.argv, r.exit_code) for r in results],
-                             layout_notes=notes)
+                             fingerprint_changed=bool(changed), commands=commands, layout_notes=notes)
     res = gate.apply_review(store, attempt_id=attempt_id, slice=slice_, review=review, all_green=kind == "green",
-                            threshold=ctx.config.gate.pass_threshold, now=clock(),
-                            make_prompt=make_prompt(ctx))
+                            threshold=ctx.config.gate.pass_threshold, now=clock(), make_prompt=make_prompt(ctx))
     return SubmitOutcome(
         "reviewed", attempt_id, verdict="pass" if res.passed else "needs_work", passed=res.passed,
-        issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts,
-        commands=[(r.argv, r.exit_code) for r in results], fingerprint_changed=bool(changed),
-        understanding_check=review.understanding_check, layout_notes=notes,
+        issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts, commands=commands,
+        fingerprint_changed=bool(changed), understanding_check=review.understanding_check, layout_notes=notes,
         reused_review=reused is not None, needs_teachback=res.passed,
         teachback_question=teachback_question(slice_.title, review.understanding_check) if res.passed else "")
-

@@ -9,6 +9,7 @@ from ramp.providers.port import ProviderError
 
 _GENERIC_CHECK = "In your own words, what does your code do at the places flagged above?"
 _GENERIC_REASON = "see the evidence location"
+INTERRUPTED = "interrupted"  # blocked_cause of an attempt that was cut short (Ctrl-C or a killed process)
 _RESULT_GREEN = "[result: green]"
 _RESULT_NOT_GREEN = "[result: not green]"
 
@@ -20,6 +21,11 @@ def result_trailer(all_green: bool) -> str:
 
 def all_green_from_output(test_output: str) -> bool:
     return test_output.rstrip().endswith(_RESULT_GREEN)
+
+
+def has_result(test_output: str) -> bool:
+    """A finished test run ends with a result line; an attempt without one never got that far."""
+    return test_output.rstrip().endswith((_RESULT_GREEN, _RESULT_NOT_GREEN))
 
 
 def violations(out: ReviewerOutput) -> list[str]:

@@ -178,6 +178,10 @@ def submit_cmd(ctx: typer.Context) -> None:
         _print_submit(out)
         if out.passed and out.needs_teachback:
             _teach_back(context, out)
+    except KeyboardInterrupt:
+        typer.echo("Interrupted. Your attempt is saved as blocked (interrupted) and is not counted against you. "
+                   "Run `ramp submit` again when you are ready.", err=True)
+        raise typer.Exit(1) from None
     finally:
         _auto_export_if_open(context)
 

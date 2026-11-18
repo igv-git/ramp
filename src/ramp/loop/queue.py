@@ -9,7 +9,9 @@ from datetime import UTC, datetime
 
 from ramp import gate, paths
 from ramp.loop.review_step import (
+    INTERRUPTED,
     all_green_from_output,
+    has_result,
     make_prompt,
     previous_review,
     review_with_lint,
@@ -32,6 +34,11 @@ def drain(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> lis
     store, lines = ctx.store, []
     pending = list(store.pending_attempts())
     for i, row in enumerate(pending):
+        if not has_result(row["test_output"]):  # started but never finished (a killed process): nothing to review
+            store.update_attempt(row["id"], status="blocked", blocked_cause=INTERRUPTED)
+            lines.append(f"Attempt #{row['id']} of {row['slice_id']} was interrupted before its tests finished; "
+                         "it is marked blocked. Run `ramp submit` again.")
+            continue
         found = _slice_of(ctx, row["slice_id"])
         if found is None:
             store.update_attempt(row["id"], status="blocked", blocked_cause="its slice is no longer in the curriculum")
