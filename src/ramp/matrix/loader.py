@@ -32,9 +32,6 @@ class Descriptors:
     def skills(self) -> list[str]:
         return sorted(self._data)
 
-    def has_skill(self, skill: str) -> bool:
-        return skill in self._data
-
     def levels(self, skill: str) -> dict[int, str]:
         if skill not in self._data:
             raise LawError(

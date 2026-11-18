@@ -63,7 +63,7 @@ def test_missing_skill_or_level(tmp_home):
         d.levels("rust")
     with pytest.raises(LawError, match="level 3"):
         d.level_text("python", 3)
-    assert d.has_skill("python") and not d.has_skill("rust")
+    assert d.skills() == ["python"]
 
 
 def test_claims_loaded_and_labeled(tmp_home):

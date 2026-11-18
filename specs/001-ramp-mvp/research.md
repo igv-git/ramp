@@ -26,7 +26,7 @@ Each decision: Decision · Rationale · Alternatives. Facts marked (verified) we
 
 **D12. New dependencies.** `pyyaml` (descriptors/claims are YAML by spec; stdlib has no parser — stdlib-first check fails), `pytest` promoted to runtime. No others.
 
-**D13. Descriptor freezing for unknown skills.** `matrix.freeze(skill, levels, approved_by="user")` appends the skill and records `_meta.approvals.<skill>.{approved_at}`; refuses if the skill already exists or file `_meta.status` is `mock`. Called only from `gate.freeze_descriptors` after the CLI obtained explicit user approval.
+**D13. ~~Descriptor freezing for unknown skills.~~ CANCELLED (owner decision 2026-11-17: unknown-skill path cut; descriptors are edited by the owner, ramp never drafts or freezes them). Original design, not built:** `matrix.freeze(skill, levels, approved_by="user")` appends the skill and records `_meta.approvals.<skill>.{approved_at}`; refuses if the skill already exists or file `_meta.status` is `mock`. Called only from `gate.freeze_descriptors` after the CLI obtained explicit user approval.
 
 **D14. Law location at runtime.** `~/.ramp/descriptors.yaml` and `claims.yaml` (copied by the owner from `docs/spec/`; not packaged). `RAMP_HOME` overrides the home for tests.
 
