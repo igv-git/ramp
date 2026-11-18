@@ -18,17 +18,21 @@ ramp never writes your code. That is the whole point.
 | `ramp export` | Writes a plain-text snapshot of your progress, commits it and prints your counts | **yes** |
 | `ramp flag-bridge` | Marks a comparison to your old stack that misled you | **yes** |
 
-You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards, the teach-back, the offline review queue, `export` and `flag-bridge` all work. Hardening (cost-cap and Ctrl-C edge cases) is still to come.
+You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards, the teach-back, the offline review queue, `export` and `flag-bridge` all work. A cost-cap abort or Ctrl-C leaves your data consistent: an interrupted `submit` is saved as a blocked attempt (cause `interrupted`) and is not counted against you.
 
 ## Setup
 
 You need [uv](https://docs.astral.sh/uv/), git, and an [OpenRouter](https://openrouter.ai) API key (or any OpenAI-compatible endpoint, including a local one).
 
+### Install
+
 ```bash
 git clone <this repository> && cd ramp-code
-uv sync
-uv run ramp --help          # or: uv tool install .   to get a plain `ramp` command
+uv tool install .            # puts a plain `ramp` command on your PATH
+ramp --help
 ```
+
+To run it from the checkout without installing, use `uv sync` and then `uv run ramp --help`; every `ramp ...` below becomes `uv run ramp ...`. Re-run `uv tool install . --force` after pulling changes.
 
 ### 1. Put your skill levels in place
 
@@ -64,6 +68,20 @@ Then export your key. It is read from the environment, never written to disk:
 ```bash
 export OPENROUTER_API_KEY=...
 ```
+
+## Quickstart
+
+```bash
+mkdir -p ~/.ramp && cp docs/spec/descriptors.yaml docs/spec/claims.yaml ~/.ramp/   # 1. the law files (edit claims.yaml honestly)
+ramp init --skill python --to 2        # 2. creates ~/.ramp/config.toml and stops: set the four models, then
+export OPENROUTER_API_KEY=...          #    export your key and run the same command again
+ramp today                             # 3. each day: review cards first, then the slice brief
+# 4. write your code in ~/.ramp/slices/NN/workspace/src/, by hand
+ramp submit                            # 5. checks + hints; on a pass, answer the teach-back to unlock the next slice
+ramp export                            # 6. optional: print your counts (today and submit also export by themselves)
+```
+
+Your counts, which the dogfood report is built from, are: **slices completed, cards answered, bridge flags, pending reviews.** ramp reports counts only, never a level.
 
 ## Building your curriculum
 
@@ -170,6 +188,7 @@ Each brief lists numbered comparisons to your old stack ("Bridges to what you kn
 | `could not produce a curriculum within the language core...` / `... mentions 'uv'...` | The model kept planning or writing tooling topics. Run `init` again; if your descriptor text itself is about tools, rewrite it to language-core can-dos. |
 | `a curriculum already exists` | `init` never overwrites progress. To start over deliberately, remove `~/.ramp/stacks`, `~/.ramp/slices` and `~/.ramp/profile.db` yourself. |
 | `Blocked: provider ...` | The model call failed after retries (or a spending cap was hit). It is not counted against you. Check your network, key and caps in `config.toml`, then run `ramp submit` again. |
+| `Interrupted. Your attempt is saved as blocked` | You pressed Ctrl-C during `ramp submit`. Nothing is lost or counted against you; run `ramp submit` again. |
 | `export failed: ...` | The snapshot could not be written or committed (for example `~/.ramp/exports` is not a folder, or git is missing). Your command's result is unaffected; fix the cause and run `ramp export`. |
 | cost cap reached | Raise the caps in `config.toml`, or wait for the next day's budget. |
 
