@@ -97,16 +97,13 @@ def apply(store, review_obj, green=True, threshold=3, concepts=("counter",)):
                              all_green=green, threshold=threshold, now=NOW)
 
 
-def test_pass_stores_attempt_and_unlocks_next(store):
+def test_pass_stores_attempt_and_leaves_the_unlock_to_the_teachback(store):
     r = b.review_out(rating=4, issues=[b.CLEAN_ISSUE])
     res = apply(store, r)
     row = store.get_attempt(1)
     assert res.passed and row["status"] == "reviewed" and row["passed"] == 1 and row["verdict"] == "pass"
     assert row["hints_used"] == 1 and "counter" in row["review_json"]
-    assert store.get_slice_state("S1")["status"] == "passed"
-    assert store.get_slice_state("S1")["passed_at"].startswith("2026-11-11")
-    assert store.get_slice_state("S2")["status"] == "current"
-    assert res.unlocked == "S2"
+    assert store.get_slice_state("S1")["status"] == "current" and store.get_slice_state("S2")["status"] == "locked"
 
 
 def test_needs_work_keeps_the_slice_current(store):
@@ -114,7 +111,6 @@ def test_needs_work_keeps_the_slice_current(store):
     row = store.get_attempt(1)
     assert not res.passed and row["passed"] == 0 and row["verdict"] == "needs_work"
     assert store.get_slice_state("S1")["status"] == "current" and store.get_slice_state("S2")["status"] == "locked"
-    assert res.unlocked is None
 
 
 def test_hints_used_counts_issues_shown(store):
@@ -157,12 +153,3 @@ def test_passing_attempt_with_a_low_other_rating_still_cards_it(store):
         concept="counter", rating=2, evidence="a.py:3", delta_reason="x")]})
     res = apply(store, r)
     assert not res.passed and store.get_card_by_concept("counter") is not None
-
-
-def test_last_slice_pass_unlocks_nothing(store):
-    store.set_slice_state("S1", "python", "passed")
-    store.set_slice_state("S2", "python", "current")
-    r = b.review_out(rating=4)
-    res = gate.apply_review(store, attempt_id=attempt(store), slice=b.slice_for(2), review=r, all_green=True,
-                            threshold=3, now=NOW)
-    assert res.passed and res.unlocked is None and store.get_slice_state("S2")["status"] == "passed"

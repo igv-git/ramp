@@ -73,3 +73,19 @@ SOLUTION = (
     "        out[w] = out.get(w, 0) + 1\n"
     "    return out\n"
 )
+
+
+def grader_out(grade=4, rationale="Covers the idea and gives an example."):
+    return m.GraderOutput(grade=grade, rationale=rationale)
+
+
+def card_prompt(question="Explain Counter in your own words and say when you would reach for it.",
+                rubric="Names the key idea, gives an example, says where the Java comparison stops."):
+    return m.CardPrompt(question=question, rubric=rubric)
+
+
+def two_concept_outline(n=2, minutes=30):
+    """An outline whose first slice targets two concepts (for weak-concept scenarios)."""
+    o = outline(n, minutes)
+    o.slices[0].concepts = ["counter", "eafp"]
+    return o

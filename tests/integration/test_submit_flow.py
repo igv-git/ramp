@@ -12,6 +12,10 @@ def R(code, pytest_cmd=True, **kw):
     return RunResult(argv=["pytest"], exit_code=code, output="out", is_pytest=pytest_cmd, **kw)
 
 
+def _reviewer_calls(llm):
+    return [c for c in llm.calls if c.role == "reviewer"]
+
+
 # ---- classify_run (data-model.md §6)
 @pytest.mark.parametrize("results,shipped,now,expect", [
     ([R(None, timed_out=True)], "a", "a", ("blocked", "timeout")),
@@ -68,6 +72,7 @@ def test_today_without_curriculum(law_home):
 def test_wrong_code_gets_locate_only_hints(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home, b.WRONG)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     out = sf.run_submit(ctx)
     assert out.status == "reviewed" and out.verdict == "needs_work" and not out.passed
@@ -78,20 +83,21 @@ def test_wrong_code_gets_locate_only_hints(curriculum):
     assert ctx.store.get_slice_state("S1")["status"] == "current"
 
 
-def test_correct_code_with_good_ratings_passes_and_unlocks(curriculum):
+def test_correct_code_with_good_ratings_passes_and_waits_for_the_teachback(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home)
     llm.responses["reviewer"] = [b.review_out(rating=4)]
     out = sf.run_submit(ctx)
-    assert out.passed and out.verdict == "pass" and out.unlocked == "S2"
+    assert out.passed and out.verdict == "pass" and out.unlocked is None and out.needs_teachback
     assert ctx.store.get_attempt(out.attempt_id)["passed"] == 1
-    assert ctx.store.get_slice_state("S1")["status"] == "passed"
-    assert ctx.store.get_slice_state("S2")["status"] == "current"
+    assert ctx.store.get_slice_state("S1")["status"] == "current"  # unlocking is the teach-back's job
+    assert ctx.store.get_slice_state("S2")["status"] == "locked"
 
 
 def test_green_tests_with_a_low_rating_is_not_a_pass_and_makes_a_card(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=2, verdict="pass")]
     out = sf.run_submit(ctx)
     assert not out.passed and out.verdict == "needs_work"
@@ -118,10 +124,12 @@ def test_reviewer_receives_brief_diff_and_test_output(curriculum):
 def test_lint_violation_is_regenerated_then_clean_hint_is_kept(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home, b.WRONG)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CODE_ISSUE], verdict="needs_work"),
                                  b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     out = sf.run_submit(ctx)
-    assert len(llm.calls) == 2 and "L2" in llm.calls[1].user
+    reviews = _reviewer_calls(llm)
+    assert len(reviews) == 2 and "L2" in reviews[1].user
     assert [i.hint for i in out.issues] == [b.CLEAN_ISSUE[2]]
 
 
@@ -129,9 +137,10 @@ def test_three_violations_fall_back_to_a_generic_hint_without_code(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home, b.WRONG)
     fence = ("src/wc/__init__.py:1", "returns nothing", "```python\nreturn {}\n```")
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CODE_ISSUE, fence], verdict="needs_work")] * 3
     out = sf.run_submit(ctx)
-    assert len(llm.calls) == 3  # 1 try + max_regenerations (2)
+    assert len(_reviewer_calls(llm)) == 3  # 1 try + max_regenerations (2)
     from ramp.lint.leak import check_hint
 
     for issue in out.issues:
@@ -153,6 +162,7 @@ def test_pytest_exit_5_with_unchanged_fingerprint_is_blocked_and_not_reviewed(cu
 def test_edited_tests_turn_the_same_failure_into_needs_work(curriculum):
     ctx, llm = curriculum
     (ctx.home / "slices" / "01" / "workspace" / "tests" / "test_wc.py").write_text("def helper():\n    pass\n")
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     out = sf.run_submit(ctx)
     assert out.status == "reviewed" and out.verdict == "needs_work"
@@ -184,6 +194,7 @@ def test_attempt_stores_the_acceptance_fingerprint(curriculum):
     import json
 
     ctx, llm = curriculum
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     out = sf.run_submit(ctx)
     shipped = json.loads((ctx.home / "slices" / "01" / "slice.json").read_text())["shipped_fingerprint"]
@@ -211,10 +222,11 @@ def test_empty_diff_gets_needs_work_without_a_model_call_or_cards(curriculum):
 def test_identical_resubmit_reuses_the_stored_review(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home, b.WRONG)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     first = sf.run_submit(ctx)
     again = sf.run_submit(ctx)
-    assert len(llm.calls) == 1 and again.reused_review and not first.reused_review
+    assert len(_reviewer_calls(llm)) == 1 and again.reused_review and not first.reused_review
     assert [i.hint for i in again.issues] == [i.hint for i in first.issues]
     assert again.attempt_id != first.attempt_id
 
@@ -222,9 +234,10 @@ def test_identical_resubmit_reuses_the_stored_review(curriculum):
 def test_changed_code_is_reviewed_again(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home, b.WRONG)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work"),
                                  b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     sf.run_submit(ctx)
     write_solution(ctx.home, "def count(text):\n    return {'x': 1}\n")
     again = sf.run_submit(ctx)
-    assert len(llm.calls) == 2 and not again.reused_review
+    assert len(_reviewer_calls(llm)) == 2 and not again.reused_review

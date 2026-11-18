@@ -42,3 +42,19 @@ def test_card_dict_roundtrip():
     d = c.to_dict()
     assert Card.from_dict(d).due == c.due
     assert review.card_from_json(review.card_to_json(c)).due == c.due
+
+
+def test_due_cards_filters_by_time_and_orders_by_due_then_id(tmp_home):
+    from ramp.store import db as store_db
+    from ramp.store.repos import Store
+
+    store = Store(store_db.connect(tmp_home / "profile.db"))
+    for cid in ("a", "b", "c"):
+        store.upsert_concept(cid, "python", cid.upper(), None)
+    now = datetime(2026, 11, 12, 9, 0, tzinfo=UTC)
+    for cid, due in (("a", now - timedelta(hours=1)), ("b", now - timedelta(days=1)), ("c", now + timedelta(days=1))):
+        card = review.new_card()
+        store.add_card(card.card_id, cid, review.card_to_json(card), due.isoformat(), "q", "r", "t", "weak_review")
+    assert [r["concept_id"] for r in review.due_cards(store, now)] == ["b", "a"]
+    assert review.due_cards(store, now - timedelta(days=5)) == []
+    store.close()

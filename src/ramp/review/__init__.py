@@ -45,3 +45,9 @@ def card_prompt_template(name: str, bridge_note: str | None) -> CardPrompt:
     if note:
         rubric += f" It should also say where this comparison from your old stack stops holding: {note}."
     return CardPrompt(question=question[:300], rubric=rubric[:500])
+
+
+def due_cards(store, now: datetime) -> list:
+    """Cards due at `now`, earliest due first (ties by card id)."""
+    rows = [r for r in store.all_cards() if datetime.fromisoformat(r["due"]) <= now]
+    return sorted(rows, key=lambda r: (datetime.fromisoformat(r["due"]), r["card_id"]))

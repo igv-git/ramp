@@ -22,6 +22,7 @@ def test_today_prints_brief_bridges_and_workspace(curriculum):
 def test_submit_needs_work_prints_locate_only_hints(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home, b.WRONG)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=1, issues=[b.CLEAN_ISSUE], verdict="needs_work")]
     res = invoke(["submit"], llm)
     assert res.exit_code == 0, res.output
@@ -30,11 +31,12 @@ def test_submit_needs_work_prints_locate_only_hints(curriculum):
     assert "```" not in res.output
 
 
-def test_submit_pass_unlocks_next_slice(curriculum):
+def test_submit_pass_unlocks_next_slice_after_the_teachback(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home)
     llm.responses["reviewer"] = [b.review_out(rating=4)]
-    res = invoke(["submit"], llm)
+    llm.responses["grader"] = [b.grader_out(4)]
+    res = runner.invoke(app, ["submit"], obj={"llm": llm}, input="get returns a default\n")
     assert res.exit_code == 0, res.output
     assert "pass" in res.output.lower() and "S2" in res.output
 
@@ -42,6 +44,7 @@ def test_submit_pass_unlocks_next_slice(curriculum):
 def test_submit_green_tests_but_low_rating_explains_why(curriculum):
     ctx, llm = curriculum
     write_solution(ctx.home)
+    llm.responses["grader"] = [b.card_prompt()]  # the weak concept gets a model-written card
     llm.responses["reviewer"] = [b.review_out(rating=2)]
     res = invoke(["submit"], llm)
     assert res.exit_code == 0

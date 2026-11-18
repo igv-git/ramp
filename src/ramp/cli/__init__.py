@@ -88,11 +88,33 @@ def _not_yet(name: str) -> Callable:
     return command
 
 
+def _ask(label: str) -> str:
+    return typer.prompt(label, default="", show_default=False).strip()
+
+
+def _review_cards(context, view) -> None:
+    """Serve each due card: question, written answer, grade, reschedule. A blank answer skips the card."""
+    for card in view.cards:
+        console.print(Panel(Text(card.question), title=f"Review: {card.concept}", title_align="left"))
+        answer = _ask("Your answer (Enter to skip)")
+        if not answer:
+            console.print(Text("Skipped; it stays due."))
+            continue
+        try:
+            res = today_flow.answer_card(context, card.card_id, answer)
+        except ProviderError as e:
+            console.print(Text(f"Could not grade this card now ({e}); it stays due. Run `ramp today` again later.",
+                               style="yellow"))
+            return
+        console.print(Text(f"Grade {res.grade}/5: {res.rationale}"))
+
+
 def today_cmd(ctx: typer.Context) -> None:
-    """Show today's slice brief (due review cards come first once cards exist)."""
+    """Review due cards first, then show today's slice brief."""
     context = _context(ctx, paths.home())
     try:
         view = today_flow.run_today(context)
+        _review_cards(context, view)
     except today_flow.NoCurriculum as e:
         raise _fail(str(e)) from None
     finally:
@@ -109,15 +131,45 @@ def today_cmd(ctx: typer.Context) -> None:
     console.print(Text(f"Workspace: {view.workspace}\nWrite your code in src/, then run `ramp submit`."))
 
 
+def _teach_back(context, out) -> None:
+    console.print(Text("\n" + out.teachback_question))
+    answer = ""
+    try:
+        while not answer:
+            answer = _ask("Your teach-back")
+    except typer.Abort:
+        console.print(Text("Teach-back not recorded; the next slice stays locked. Run `ramp submit` again to "
+                           "finish it (the review is reused, no model call).", style="yellow"))
+        raise
+    res = submit_flow.complete_teachback(context, out, answer)
+    if res.grade is None:
+        console.print(Text("Teach-back saved; it could not be graded now."))
+    else:
+        console.print(Text(f"Teach-back grade {res.grade}/5: {res.rationale}"))
+    if res.cards_created:
+        console.print(Text("Added review cards for: " + ", ".join(res.cards_created)))
+    if res.unlocked:
+        console.print(Text(f"Next slice {res.unlocked} unlocked. Run `ramp today`."))
+    else:
+        console.print(Text("That was the last slice."))
+
+
 def submit_cmd(ctx: typer.Context) -> None:
-    """Run the acceptance checks and get a review."""
+    """Run the acceptance checks and get a review; on a pass, answer a teach-back to unlock the next slice."""
     context = _context(ctx, paths.home())
     try:
-        out = submit_flow.run_submit(context)
-    except (submit_flow.NothingToSubmit, today_flow.NoCurriculum) as e:
-        raise _fail(str(e)) from None
+        try:
+            out = submit_flow.run_submit(context)
+        except (submit_flow.NothingToSubmit, today_flow.NoCurriculum) as e:
+            raise _fail(str(e)) from None
+        _print_submit(out)
+        if out.passed and out.needs_teachback:
+            _teach_back(context, out)
     finally:
         context.store.close()
+
+
+def _print_submit(out) -> None:
     for argv, code in out.commands:
         state = "ok" if code == 0 else "timed out / not started" if code is None else f"exit {code}"
         console.print(Text(f"  {' '.join(argv)}  ->  {state}"))
@@ -133,10 +185,6 @@ def submit_cmd(ctx: typer.Context) -> None:
         raise typer.Exit(1)
     if out.passed:
         console.print(Text("Passed.", style="bold green"))
-        if out.unlocked:
-            console.print(Text(f"Next slice {out.unlocked} unlocked. Run `ramp today`."))
-        else:
-            console.print(Text("That was the last slice."))
         return
     console.print(Text("Not passed yet (verdict: needs work).", style="bold"))
     for reason in out.reasons:

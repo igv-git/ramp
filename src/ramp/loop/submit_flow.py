@@ -9,10 +9,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from ramp import gate
-from ramp.agents import reviewer
+from ramp.agents import grader, reviewer
 from ramp.lint.leak import check_hint, check_text, fallback_hint
-from ramp.loop.today_flow import current_slice
-from ramp.models import Issue, ReviewerOutput
+from ramp.loop.today_flow import clean_graded, current_slice
+from ramp.models import CardPrompt, GraderOutput, Issue, ReviewerOutput
 from ramp.plan.diff import layout_notes, workspace_diff
 from ramp.providers.port import ProviderError
 from ramp.runner import exec as rexec
@@ -44,6 +44,17 @@ class SubmitOutcome:
     understanding_check: str = ""
     layout_notes: list[str] = field(default_factory=list)
     reused_review: bool = False
+    needs_teachback: bool = False
+    teachback_question: str = ""
+
+
+@dataclass
+class TeachbackOutcome:
+    grade: int | None
+    rationale: str = ""
+    unlocked: str | None = None
+    cards_created: list[str] = field(default_factory=list)
+    finished: bool = False
 
 
 def classify_run(results: list, shipped_fp: str, attempt_fp: str) -> tuple[str, str | None]:
@@ -119,6 +130,40 @@ def _previous_review(store, slice_id: str, diff: str, test_output: str, current_
     return None
 
 
+def _make_prompt(ctx) -> Callable[[str, str | None], CardPrompt | None]:
+    """Card prompts come from the grader when it is reachable; otherwise gate keeps its deterministic template."""
+    def make(name: str, note: str | None) -> CardPrompt | None:
+        try:
+            return grader.make_card_prompt(ctx.llm, concept=name, bridge_note=note)
+        except ProviderError:
+            return None
+    return make
+
+
+def teachback_question(title: str, understanding_check: str) -> str:
+    return (f"Teach-back, in your own words: what did you build in '{title}', and why does your approach work? "
+            f"{understanding_check}").strip()
+
+
+def complete_teachback(ctx, outcome: SubmitOutcome, answer: str,
+                       clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> TeachbackOutcome:
+    """Store the teach-back, grade it, and unlock the next slice. The slice is unlocked even if the grader is down."""
+    found = current_slice(ctx)
+    if found is None or not outcome.needs_teachback:
+        raise NothingToSubmit("there is no passed attempt waiting for a teach-back")
+    plan, slice_, _ = found
+    concepts = [c for c in plan.concepts if c.id in slice_.concepts]
+    try:
+        graded: GraderOutput | None = clean_graded(grader.grade_teachback(
+            ctx.llm, brief=slice_.brief, question=outcome.teachback_question, answer=answer, concepts=concepts))
+    except ProviderError:
+        graded = None
+    res = gate.apply_teachback(ctx.store, attempt_id=outcome.attempt_id, slice=slice_, answer=answer,
+                               graded=graded, now=clock(), make_prompt=_make_prompt(ctx))
+    return TeachbackOutcome(res.grade, graded.rationale if graded else "", res.unlocked, res.cards_created,
+                            finished=res.unlocked is None)
+
+
 def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> SubmitOutcome:
     found = current_slice(ctx)
     if found is None:
@@ -172,11 +217,13 @@ def run_submit(ctx, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -
                              fingerprint_changed=bool(changed), commands=[(r.argv, r.exit_code) for r in results],
                              layout_notes=notes)
     res = gate.apply_review(store, attempt_id=attempt_id, slice=slice_, review=review, all_green=kind == "green",
-                            threshold=ctx.config.gate.pass_threshold, now=clock())
+                            threshold=ctx.config.gate.pass_threshold, now=clock(),
+                            make_prompt=_make_prompt(ctx))
     return SubmitOutcome(
         "reviewed", attempt_id, verdict="pass" if res.passed else "needs_work", passed=res.passed,
-        issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts, unlocked=res.unlocked,
+        issues=review.issues, reasons=res.reasons, weak_concepts=res.weak_concepts,
         commands=[(r.argv, r.exit_code) for r in results], fingerprint_changed=bool(changed),
         understanding_check=review.understanding_check, layout_notes=notes,
-        reused_review=reused is not None)
+        reused_review=reused is not None, needs_teachback=res.passed,
+        teachback_question=teachback_question(slice_.title, review.understanding_check) if res.passed else "")
 
