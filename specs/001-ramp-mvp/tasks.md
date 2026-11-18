@@ -141,14 +141,14 @@ description: "Task list for the ramp MVP, staged as 8 implement runs"
 
 ## Run R7 — Resilience and export (day 7 morning)
 
-- [ ] T064 [P] [US4] Write failing tests in `tests/integration/test_offline_blocked.py`: `ProviderOffline` on submit → attempt `pending_review`, tests output stored, slice stays locked, exit 0 with "queued"; next `today` and `submit` drain oldest-first printing one line per review; `ProviderFailed` after retries or `CostCapExceeded` → `blocked` with cause and "what to try", `passed` NULL, exit 1; a later successful `submit` supersedes the blocked attempt; quickstart scenarios 6 and 7
-- [ ] T065 [US4] Implement `src/ramp/loop/queue.py` (drain) and wire offline/blocked routing into `src/ramp/loop/submit_flow.py` and `src/ramp/loop/today_flow.py`
-- [ ] T066 [P] [US6] Write failing tests in `tests/unit/test_export.py`: files and fields exactly as `contracts/export.md`; deterministic (`sort_keys`, stable order, byte-identical on re-run); bodies of test output/diff/review are not exported; counts line (`slices completed`, `cards answered`, `bridge flags`, `pending reviews`) derived from the files
-- [ ] T067 [US6] Implement `src/ramp/store/export.py` (`export_all`, `counts`)
-- [ ] T068 [P] [US6] Write failing tests in `tests/integration/test_export_flow.py`: `ramp export` writes files, commits via the helper, prints counts; `today` and `submit` end with an automatic export; a forced export failure is printed and does not change the parent command's exit status while standalone `export` exits 1
-- [ ] T069 [US6] Implement the `export` command and the automatic end-of-command export in `src/ramp/cli/__init__.py` and `src/ramp/loop/`
-- [ ] T070 [P] [US6] Write failing tests in `tests/integration/test_flag_bridge.py`: valid slice and bridge number stored with note and timestamp and appear in `bridge_flags.jsonl`; unknown slice or bridge number → exit 2, nothing stored
-- [ ] T071 [US6] Implement the `flag-bridge` command in `src/ramp/cli/__init__.py` (validates against `plan.json`, stores via `store`)
+- [X] T064 [P] [US4] Write failing tests in `tests/integration/test_offline_blocked.py`: `ProviderOffline` on submit → attempt `pending_review`, tests output stored, slice stays locked, exit 0 with "queued"; next `today` and `submit` drain oldest-first printing one line per review; `ProviderFailed` after retries or `CostCapExceeded` → `blocked` with cause and "what to try", `passed` NULL, exit 1; a later successful `submit` supersedes the blocked attempt; quickstart scenarios 6 and 7
+- [X] T065 [US4] Implement `src/ramp/loop/queue.py` (drain) and wire offline/blocked routing into `src/ramp/loop/submit_flow.py` and `src/ramp/loop/today_flow.py`
+- [X] T066 [P] [US6] Write failing tests in `tests/unit/test_export.py`: files and fields exactly as `contracts/export.md`; deterministic (`sort_keys`, stable order, byte-identical on re-run); bodies of test output/diff/review are not exported; counts line (`slices completed`, `cards answered`, `bridge flags`, `pending reviews`) derived from the files
+- [X] T067 [US6] Implement `src/ramp/store/export.py` (`export_all`, `counts`)
+- [X] T068 [P] [US6] Write failing tests in `tests/integration/test_export_flow.py`: `ramp export` writes files, commits via the helper, prints counts; `today` and `submit` end with an automatic export; a forced export failure is printed and does not change the parent command's exit status while standalone `export` exits 1
+- [X] T069 [US6] Implement the `export` command and the automatic end-of-command export in `src/ramp/cli/__init__.py` and `src/ramp/loop/`
+- [X] T070 [P] [US6] Write failing tests in `tests/integration/test_flag_bridge.py`: valid slice and bridge number stored with note and timestamp and appear in `bridge_flags.jsonl`; unknown slice or bridge number → exit 2, nothing stored
+- [X] T071 [US6] Implement the `flag-bridge` command in `src/ramp/cli/__init__.py` (validates against `plan.json`, stores via `store`)
 
 **Run R7 done when**: green.
 

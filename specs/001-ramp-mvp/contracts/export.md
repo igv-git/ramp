@@ -8,12 +8,14 @@ Deterministic: `json.dumps(obj, sort_keys=True, ensure_ascii=False)`, one object
 | File | One line per | Fields |
 |---|---|---|
 | `concepts.jsonl` | concept | `id, skill, name, bridge_note, has_card, card_due` |
-| `attempts.jsonl` | attempt (index, no bodies) | `id, slice_id, ts, status, verdict, passed, hints_used, fingerprint, fingerprint_changed, blocked_cause, ratings:{concept:rating}` |
+| `attempts.jsonl` | attempt (index, no bodies) | `id, slice_id, ts, status, verdict, passed, hints_used, fingerprint, fingerprint_changed, blocked_cause, has_teachback, ratings:{concept:rating}` |
 | `due_queue.jsonl` | card due now or later | `card_id, concept_id, due, state` |
 | `bridge_flags.jsonl` | flag | `id, slice_id, bridge_no, note, ts` |
 | `card_reviews.jsonl` | card answer | `id, card_id, ts, grade, rating` (needed for SC-002 "cards answered"; answers' text is not exported) |
 
 Test output, diffs and review bodies stay in `profile.db` (kept out of git).
+
+`has_teachback` (added in R7; a boolean, no text) is what lets `slices completed` be derived from the files: a slice counts once an attempt passed **and** its teach-back is stored, which is also when it unlocks the next slice. `ratings` holds the lowest rating per concept when a review rates one twice.
 
 ## Counts printed by `export`
 `slices completed: N · cards answered: N · bridge flags: N · pending reviews: N` — derived from the files above (the dogfood report's source).

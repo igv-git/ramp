@@ -15,10 +15,10 @@ ramp never writes your code. That is the whole point.
 | `ramp init` | Checks the skill is teachable this way, then builds your curriculum | **yes** |
 | `ramp today` | Serves due review cards first, then today's slice brief | **yes** |
 | `ramp submit` | Runs the checks, gives hints-first feedback, decides pass or not, then asks a teach-back | **yes** |
-| `ramp export` | Writes a plain-text snapshot of your progress and commits it | not yet |
-| `ramp flag-bridge` | Marks a comparison to your old stack that misled you | not yet |
+| `ramp export` | Writes a plain-text snapshot of your progress, commits it and prints your counts | **yes** |
+| `ramp flag-bridge` | Marks a comparison to your old stack that misled you | **yes** |
 
-You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards and the teach-back work. The offline review queue, `export` and `flag-bridge` are still to come; the sections below mark which parts are not live yet.
+You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards, the teach-back, the offline review queue, `export` and `flag-bridge` all work. Hardening (cost-cap and Ctrl-C edge cases) is still to come.
 
 ## Setup
 
@@ -127,7 +127,7 @@ About 45 minutes a day:
 
 Concepts you rated poorly on become spaced-repetition cards. A card appears the next time you run `today`, is graded by the cheap `grader` model against a rubric, and comes back at the point you are about to forget it. If the grader is unreachable, the card stays due.
 
-If a failure is not your code's fault (a broken generated test, a timeout, a provider error), ramp says so and marks the attempt as blocked rather than counting it against you; run `ramp submit` again once the cause is fixed. *(Coming: when the provider is unreachable, `submit` will queue the review and finish it later.)*
+If a failure is not your code's fault (a broken generated test, a timeout, a provider error), ramp says so and marks the attempt as blocked rather than counting it against you; run `ramp submit` again once the cause is fixed. If the provider is unreachable, `submit` still runs the tests and saves the attempt as queued; the slice stays where it is. The next `ramp today` or `ramp submit` reviews queued attempts oldest first and prints one line each. A queued attempt that passes is finished with a normal `ramp submit` (its review is reused, then the teach-back).
 
 ## Where your files live
 
@@ -147,10 +147,14 @@ If a failure is not your code's fault (a broken generated test, a timeout, a pro
     scaffold/src/      frozen copy of the starting src/; do not edit. ramp diffs your work against it
     gencheck.log       the pre-flight check log for this slice
   profile.db           your progress (not in git)
-  exports/             plain-text snapshots (planned)
+  exports/             plain-text snapshots (concepts, attempts index, due queue, bridge flags, card answers)
 ```
 
-`~/.ramp` is a git repository. The database is excluded from it; the plain-text exports will be committed so your history is readable and backed up.
+`~/.ramp` is a git repository. The database is excluded from it; the plain-text exports are committed so your history is readable and backed up. They hold no test output, code, review text or answers, only an index (ids, times, ratings, grades). `ramp today` and `ramp submit` export automatically when they finish; if that fails, ramp prints `export failed: ...` and the command's own result stands. `ramp export` runs it on demand and prints your counts: slices completed, cards answered, bridge flags, pending reviews.
+
+## Marking a misleading comparison
+
+Each brief lists numbered comparisons to your old stack ("Bridges to what you know"). If one misled you, run `ramp flag-bridge S1 2 --note "why"` (slice id, then the number). ramp only records it; an unknown slice or number is refused and nothing is stored.
 
 ## Troubleshooting
 
@@ -165,6 +169,8 @@ If a failure is not your code's fault (a broken generated test, a timeout, a pro
 | `no descriptors for skill 'x'` / `no descriptor for ... level n` | The skill or level is not in `~/.ramp/descriptors.yaml`. See "Adding a skill or changing levels". |
 | `could not produce a curriculum within the language core...` / `... mentions 'uv'...` | The model kept planning or writing tooling topics. Run `init` again; if your descriptor text itself is about tools, rewrite it to language-core can-dos. |
 | `a curriculum already exists` | `init` never overwrites progress. To start over deliberately, remove `~/.ramp/stacks`, `~/.ramp/slices` and `~/.ramp/profile.db` yourself. |
+| `Blocked: provider ...` | The model call failed after retries (or a spending cap was hit). It is not counted against you. Check your network, key and caps in `config.toml`, then run `ramp submit` again. |
+| `export failed: ...` | The snapshot could not be written or committed (for example `~/.ramp/exports` is not a folder, or git is missing). Your command's result is unaffected; fix the cause and run `ramp export`. |
 | cost cap reached | Raise the caps in `config.toml`, or wait for the next day's budget. |
 
 ## Debugging model conversations

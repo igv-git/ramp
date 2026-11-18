@@ -150,7 +150,7 @@ No `strength`, no `attempts` counter on concepts, no earned-levels table (parked
 
 ## 4. State machines
 
-**Attempt**: `submit` → `blocked` (cause) | `pending_review` | `reviewed(verdict)`. A later `submit` supersedes a blocked attempt (kept as history). A `pending_review` attempt is finished by the drain (→ `reviewed`), never re-run.
+**Attempt**: `submit` → `blocked` (cause) | `pending_review` | `reviewed(verdict)`. A later `submit` supersedes a blocked attempt (kept as history). A `pending_review` attempt is finished by the drain (→ `reviewed`), never re-run. Whether its tests were green is read from the last line of the stored `test_output` (`[result: green]` or `[result: not green]`, written by `submit`). A drained pass does not unlock: the learner finishes it with a normal `ramp submit` (the stored review is reused), then the teach-back.
 
 **Slice**: `locked → current → passed`; only `gate` (after a pass and teach-back stored) moves `current → passed` and the next `locked → current`.
 
