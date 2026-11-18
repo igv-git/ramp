@@ -125,15 +125,15 @@ description: "Task list for the ramp MVP, staged as 8 implement runs"
 
 ## Run R6 — Retention: grader, cards-first `today`, teach-back (day 6)
 
-- [ ] T055 [P] [US3] Write failing tests in `tests/unit/test_grader_agent.py` with `FakeLLM`: `grade_card(question, rubric, answer)` and `grade_teachback(...)` return `GraderOutput` with `grade` 0..5; `make_card_prompt(concept, bridge_note)` returns a `CardPrompt` (`question` ≤ 300 chars, `rubric` ≤ 500 chars, neither contains code fences); grader role is used
-- [ ] T056 [US3] Implement `src/ramp/agents/grader.py` (`grade_card`, `grade_teachback`, `make_card_prompt`)
-- [ ] T057 [P] [US3] Write failing tests in `tests/unit/test_gate_apply_grade.py`: grade → Rating via `review.rating_for`; card rescheduled and `card_reviews` row written with grade, rating, rationale; only `apply_grade` changes a card's schedule; teach-back grade ≤ 2 creates a card with `created_reason='weak_teachback'` only if none exists; an existing card is not rescheduled by a teach-back; when a card is created and the provider is reachable, its `question`/`rubric` come from `grader.make_card_prompt`, and when offline or on failure the deterministic template from R5 is used
-- [ ] T058 [US3] Implement `src/ramp/gate/apply_grade.py` and the `make_card_prompt` upgrade path in `gate.apply_review` (template fallback kept)
-- [ ] T059 [P] [US3] Write failing tests in `tests/integration/test_today_cards.py`: due cards served before the brief ordered by `due` ascending; a newly created weak card is due on the next `today`; answers are graded and rescheduled; with no due cards the brief is shown directly; after the last slice `today` says the curriculum is finished and that no level is recorded in the MVP; quickstart scenarios 4 and 5
-- [ ] T060 [US3] Implement `review.due_cards` in `src/ramp/review/__init__.py` and cards-first in `src/ramp/loop/today_flow.py`; add card prompts to the `today` command
-- [ ] T061 [P] [US1] Write failing tests in `tests/integration/test_teachback.py`: on pass, a teach-back is requested and stored in `teachbacks`; the next slice unlocks only after the teach-back is stored; teach-back graded and applied through `gate.apply_grade`
-- [ ] T062 [US1] Add teach-back to `src/ramp/loop/submit_flow.py` and the `submit` command (unlock moves after teach-back)
-- [ ] T063 [US3] Add `tests/integration/test_weak_resurfaces.py`: scripted run where ≥ 2 weak concepts become cards and resurface and are graded (DoD #3)
+- [X] T055 [P] [US3] Write failing tests in `tests/unit/test_grader_agent.py` with `FakeLLM`: `grade_card(question, rubric, answer)` and `grade_teachback(...)` return `GraderOutput` with `grade` 0..5; `make_card_prompt(concept, bridge_note)` returns a `CardPrompt` (`question` ≤ 300 chars, `rubric` ≤ 500 chars, neither contains code fences); grader role is used
+- [X] T056 [US3] Implement `src/ramp/agents/grader.py` (`grade_card`, `grade_teachback`, `make_card_prompt`)
+- [X] T057 [P] [US3] Write failing tests in `tests/unit/test_gate_apply_grade.py`: grade → Rating via `review.rating_for`; card rescheduled and `card_reviews` row written with grade, rating, rationale; only `apply_grade` changes a card's schedule; teach-back grade ≤ 2 creates a card with `created_reason='weak_teachback'` only if none exists; an existing card is not rescheduled by a teach-back; when a card is created and the provider is reachable, its `question`/`rubric` come from `grader.make_card_prompt`, and when offline or on failure the deterministic template from R5 is used
+- [X] T058 [US3] Implement `src/ramp/gate/apply_grade.py` and the `make_card_prompt` upgrade path in `gate.apply_review` (template fallback kept)
+- [X] T059 [P] [US3] Write failing tests in `tests/integration/test_today_cards.py`: due cards served before the brief ordered by `due` ascending; a newly created weak card is due on the next `today`; answers are graded and rescheduled; with no due cards the brief is shown directly; after the last slice `today` says the curriculum is finished and that no level is recorded in the MVP; quickstart scenarios 4 and 5
+- [X] T060 [US3] Implement `review.due_cards` in `src/ramp/review/__init__.py` and cards-first in `src/ramp/loop/today_flow.py`; add card prompts to the `today` command
+- [X] T061 [P] [US1] Write failing tests in `tests/integration/test_teachback.py`: on pass, a teach-back is requested and stored in `teachbacks`; the next slice unlocks only after the teach-back is stored; teach-back graded and applied through `gate.apply_grade`
+- [X] T062 [US1] Add teach-back to `src/ramp/loop/submit_flow.py` and the `submit` command (unlock moves after teach-back)
+- [X] T063 [US3] Add `tests/integration/test_weak_resurfaces.py`: scripted run where ≥ 2 weak concepts become cards and resurface and are graded (DoD #3)
 
 **Run R6 done when**: green.
 

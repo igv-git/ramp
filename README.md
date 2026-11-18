@@ -13,12 +13,12 @@ ramp never writes your code. That is the whole point.
 | Command | What it does | Available |
 |---|---|---|
 | `ramp init` | Checks the skill is teachable this way, then builds your curriculum | **yes** |
-| `ramp today` | Shows today's slice brief (review cards come later) | **yes** |
-| `ramp submit` | Runs the checks, gives hints-first feedback, decides pass or not | **yes** (no teach-back yet) |
+| `ramp today` | Serves due review cards first, then today's slice brief | **yes** |
+| `ramp submit` | Runs the checks, gives hints-first feedback, decides pass or not, then asks a teach-back | **yes** |
 | `ramp export` | Writes a plain-text snapshot of your progress and commits it | not yet |
 | `ramp flag-bridge` | Marks a comparison to your old stack that misled you | not yet |
 
-You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards, the teach-back, the offline review queue, `export` and `flag-bridge` are still to come; the sections below mark which parts are not live yet.
+You can build a curriculum and run the basic practice loop: read the brief, code, submit, get hints, pass. Review cards and the teach-back work. The offline review queue, `export` and `flag-bridge` are still to come; the sections below mark which parts are not live yet.
 
 ## Setup
 
@@ -119,13 +119,13 @@ Honest limit: today every check runs through pytest, so a skill only works if it
 
 About 45 minutes a day:
 
-1. **`ramp today`** — review cards for anything you struggled with come first, then today's slice brief.
+1. **`ramp today`** — review cards for anything you struggled with come first (answer in a sentence or two; Enter skips a card), then today's slice brief.
 2. **Code by hand**, in your own editor, in the slice's workspace folder.
 3. **`ramp submit`** — ramp runs the checks and a reviewer reads your attempt. If something is wrong you get hints that say *where* and *what looks off*, never the fix. Fix it and submit again.
 4. **Passing** takes more than green tests: every concept the slice targets must also be rated well, with evidence in your code, and the reviewer must not have given the answer away. Green tests alone are not a pass.
-5. On a pass the next slice unlocks. *(Coming: a short teach-back in your own words before it unlocks.)*
+5. On a pass ramp asks for a short teach-back in your own words. Once it is stored, the next slice unlocks. A weak teach-back adds review cards for the slice's concepts; if the grader is unreachable the teach-back is still saved and the slice still unlocks. If you quit at the prompt, run `ramp submit` again: the earlier review is reused, so no extra model call.
 
-*(Coming)* Concepts you rated poorly on become spaced-repetition cards. Today the cards are created, but `today` does not serve them yet; once it does, a card appears the next time you run `today` and then again at the point you are about to forget it.
+Concepts you rated poorly on become spaced-repetition cards. A card appears the next time you run `today`, is graded by the cheap `grader` model against a rubric, and comes back at the point you are about to forget it. If the grader is unreachable, the card stays due.
 
 If a failure is not your code's fault (a broken generated test, a timeout, a provider error), ramp says so and marks the attempt as blocked rather than counting it against you; run `ramp submit` again once the cause is fixed. *(Coming: when the provider is unreachable, `submit` will queue the review and finish it later.)*
 
