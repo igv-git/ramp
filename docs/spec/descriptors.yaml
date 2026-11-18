@@ -1,23 +1,38 @@
 # descriptors.yaml — frozen level descriptors (law; Art. III)
 #
-# MOCK VALUES (OD-12). Owner-authorized placeholders so the build can start.
-# The owner replaces them with real law BEFORE the W1 gate, then sets
-# _meta.status to "approved". Tooling must refuse to treat a "mock" file as
-# approved law (the W1 gate "init on python -> sane curriculum" needs real text).
+# Every can-do below is checkable by executing Python files and the tests
+# that exercise them. Nothing here may reference installers, environments,
+# packaging or third-party frameworks: an agent planning against this law
+# must never need to check anything beyond .py files and the tests that run
+# them.
 
 _meta:
-  status: approved            # mock | approved
+  status: approved
 
 python:
   1: >-
-    Reads Python: variables, control flow, basic data structures (lists, dicts,
-    tuples, sets), and file I/O. Modifies an existing script to a stated
+    Reads simple Python: variables, numbers and strings, if/else and loops,
+    the built-in containers (list, dict, tuple, set), and text file I/O with
+    the standard library. Modifies an existing single-file script to a stated
     behavior when told what to change; writes a short single-file script that
-    reads input, transforms it, and prints output. Cannot structure a project
-    alone.
+    reads input, transforms it, and prints the result.
   2: >-
-    Ships a small tested program alone: idiomatic functions and comprehensions;
-    exceptions with EAFP handling of messy input; a CLI that accepts arguments
-    and flags (argparse); a pytest suite with fixtures; packaging via pyproject,
-    installable and runnable with uv; reads and fixes someone else's script
-    against provided tests.
+    Completes a small correct program alone: idiomatic functions with type
+    hints, comprehensions, exceptions with EAFP handling of messy input, and
+    modules that other code imports. Implements functions to a written
+    specification of name, arguments and return value; reads and fixes
+    someone else's script until the provided checks pass.
+  3: >-
+    Builds a larger program out of several modules: classes with inheritance
+    and dunder methods, generators and iterators, decorators and context
+    managers, structured data (json, csv) and dates (datetime) from the
+    standard library, and command-line arguments and flags (argparse).
+    Refactors an existing multi-file program without changing its behavior,
+    as shown by the same checks passing before and after.
+  4: >-
+    Fluent in the language core: structures code into modules with clear
+    responsibilities and small interfaces; uses collections, itertools,
+    functools, re and typing (including generics and protocols); handles
+    binary data and text encodings; finds and fixes subtle bugs (shared
+    mutability, closure scoping, off-by-one iteration) in code they did not
+    write, confirmed by the provided checks.
