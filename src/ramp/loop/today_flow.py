@@ -76,7 +76,7 @@ def _today(ctx, clock: Callable[[], datetime]) -> TodayView:
     if found is None:
         return TodayView(finished=True, cards=cards, message=(
             "You have finished every slice. ramp records no level in this version, only counts; "
-            "run `ramp export` (coming) to see them."))
+            "run `ramp export` to see them."))
     _, s, slice_dir = found
     bridges = [f"{b.from_stack}: {b.comparison} (breaks down at: {b.breaks_down_at})" for b in s.bridges]
     return TodayView(slice_id=s.id, title=s.title, brief=s.brief, bridges=bridges,

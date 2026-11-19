@@ -55,6 +55,7 @@ def test_today_with_finished_curriculum(curriculum):
     ctx.store.set_slice_state("S2", "python", "passed")
     t = today_flow.run_today(ctx)
     assert t.finished and "no level" in t.message.lower()
+    assert "coming" not in t.message and "ramp export" in t.message
 
 
 def test_today_without_curriculum(law_home):
