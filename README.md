@@ -34,21 +34,14 @@ ramp --help
 
 To run it from the checkout without installing, use `uv sync` and then `uv run ramp --help`; every `ramp ...` below becomes `uv run ramp ...`. Re-run `uv tool install . --force` after pulling changes.
 
-### 1. Put your skill levels in place
+### 1. Your skill levels
 
 ramp reads two files from its home folder, `~/.ramp` (override with the `RAMP_HOME` environment variable):
 
 - `descriptors.yaml` — what each level of a skill means (the "can-dos"). These are fixed rules; ramp never rewrites them. ramp refuses to use the file unless it says `_meta: status: approved`.
 - `claims.yaml` — your own estimate of what you already know, for example `java: 3`. It is only used to decide how deep the "this is like X in your old stack" comparisons go. It never counts as a certified level.
 
-The repo ships both under `docs/spec/`. Copy them over:
-
-```bash
-mkdir -p ~/.ramp
-cp docs/spec/descriptors.yaml docs/spec/claims.yaml ~/.ramp/
-```
-
-Edit `claims.yaml` to describe yourself honestly.
+You do not copy them. The first `ramp init` creates `~/.ramp` with `config.toml`, `descriptors.yaml` and `claims.yaml` (the versions shipped in `docs/spec/`), then stops so you can finish the setup. An existing file is never overwritten. Edit `claims.yaml` to describe yourself honestly.
 
 ### 2. Choose your models
 
@@ -72,13 +65,13 @@ export OPENROUTER_API_KEY=...
 ## Quickstart
 
 ```bash
-mkdir -p ~/.ramp && cp docs/spec/descriptors.yaml docs/spec/claims.yaml ~/.ramp/   # 1. the law files (edit claims.yaml honestly)
-ramp init --skill python --to 2        # 2. creates ~/.ramp/config.toml and stops: set the four models, then
+ramp init --skill python --to 2        # 1. first run creates ~/.ramp (config, descriptors, claims) and stops:
+                                       #    set the four models, edit claims.yaml honestly, then
 export OPENROUTER_API_KEY=...          #    export your key and run the same command again
-ramp today                             # 3. each day: review cards first, then the slice brief
-# 4. write your code in ~/.ramp/slices/NN/workspace/src/, by hand
-ramp submit                            # 5. checks + hints; on a pass, answer the teach-back to unlock the next slice
-ramp export                            # 6. optional: print your counts (today and submit also export by themselves)
+ramp today                             # 2. each day: review cards first, then the slice brief
+# 3. write your code in ~/.ramp/slices/NN/workspace/src/, by hand
+ramp submit                            # 4. checks + hints; on a pass, answer the teach-back to unlock the next slice
+ramp export                            # 5. optional: print your counts (today and submit also export by themselves)
 ```
 
 Your counts, which the dogfood report is built from, are: **slices completed, cards answered, bridge flags, pending reviews.** ramp reports counts only, never a level.
@@ -122,7 +115,7 @@ ramp has no automatic onboarding for new skills. Everything it plans comes from 
      1: >-
        Reads Go: variables, control flow, slices, maps, structs, and file I/O with the standard library.
    ```
-2. Copy it into ramp's home so ramp sees it: `cp docs/spec/descriptors.yaml ~/.ramp/` (or edit `~/.ramp/descriptors.yaml` directly if you do not need the repository copy).
+2. Copy it into ramp's home so ramp sees it: `cp docs/spec/descriptors.yaml ~/.ramp/` (or edit `~/.ramp/descriptors.yaml` directly if you do not need the repository copy). `ramp init` only copies the shipped file when `~/.ramp/descriptors.yaml` is missing, so it never replaces your edits.
 3. Optional: add your estimate for related stacks to `claims.yaml` (for example `java: 3`) so the "this is like X" comparisons are the right depth.
 4. Run `ramp init --skill <skill> --to <level>`. If the skill or level is missing, ramp tells you which skills and levels the file defines.
 5. To change levels of a skill that already has a curriculum, `ramp init` refuses (it never overwrites progress). Back up and clear the old one first:

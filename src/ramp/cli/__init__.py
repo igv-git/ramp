@@ -11,7 +11,7 @@ from rich.text import Text
 
 from ramp import paths
 from ramp.cli import wiring
-from ramp.config import ConfigError, write_default
+from ramp.config import ConfigError, seed_law, write_default
 from ramp.loop import export_flow, flag_flow, init_flow, submit_flow, today_flow
 from ramp.matrix import LawError
 from ramp.providers.port import ProviderError
@@ -50,6 +50,11 @@ def init_cmd(
     except (OSError, RuntimeError) as e:
         raise _fail(f"cannot set up {home} as a git repository (is git installed?): {e}") from None
     write_default(home)
+    if law_dir is None:
+        copied = seed_law(home)
+        if copied:
+            typer.echo(f"Copied {' and '.join(copied)} into {home}. claims.yaml is your own estimate of what you "
+                       "already know: edit it honestly.")
     context = _context(ctx, home)
     goals: list[str] = []
     try:

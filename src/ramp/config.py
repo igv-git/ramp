@@ -138,3 +138,25 @@ def write_default(home: Path) -> Path:
     if not path.exists():
         path.write_text(default_toml())
     return path
+
+
+LAW_FILES = ("descriptors.yaml", "claims.yaml")
+
+
+def bundled_law(name: str) -> Path:
+    """The shipped copy of a law file: inside an installed package, else the repo's docs/spec (checkout)."""
+    packaged = Path(__file__).resolve().parent / "_law" / name
+    return packaged if packaged.exists() else Path(__file__).resolve().parents[2] / "docs" / "spec" / name
+
+
+def seed_law(home: Path) -> list[str]:
+    """Copy descriptors.yaml and claims.yaml into home when missing; an existing file is never touched."""
+    home = Path(home)
+    home.mkdir(parents=True, exist_ok=True)
+    copied = []
+    for name in LAW_FILES:
+        target = home / name
+        if not target.exists():
+            target.write_bytes(bundled_law(name).read_bytes())
+            copied.append(name)
+    return copied

@@ -41,6 +41,15 @@ def test_init_first_run_creates_home_repo_and_default_config(seeded):
     assert not (seeded / "stacks").exists()
 
 
+def test_first_init_seeds_the_law_files_without_a_manual_copy(tmp_home):
+    res = runner.invoke(app, ARGS, obj={})
+    assert (tmp_home / "descriptors.yaml").exists() and (tmp_home / "claims.yaml").exists()
+    assert "Copied descriptors.yaml and claims.yaml" in res.output and "claims.yaml" in res.output
+    assert "not found" not in res.output  # fails on the placeholder models only, never on missing law
+    res = runner.invoke(app, ARGS, obj={})
+    assert "Copied" not in res.output
+
+
 def test_init_success_prints_curriculum(seeded):
     config.write_default(seeded)
     finish_config(seeded)
