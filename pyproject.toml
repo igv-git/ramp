@@ -1,0 +1,43 @@
+[project]
+name = "ramp"
+version = "0.1.0"
+description = "Local-first CLI that onboards a developer onto a new tech stack via daily micro-projects."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "typer",
+    "rich",
+    "pydantic",
+    "pydantic-ai",
+    "fsrs",
+    "pytest",
+    "pyyaml",
+]
+
+[project.scripts]
+ramp = "ramp.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ramp"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"docs/spec/descriptors.yaml" = "ramp/_law/descriptors.yaml"
+"docs/spec/claims.yaml" = "ramp/_law/claims.yaml"
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: real-provider smoke tests; skipped unless a key and finished config exist"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
