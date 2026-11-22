@@ -64,15 +64,19 @@ def test_init_success_prints_curriculum(seeded):
 def test_init_accepts_all_flags(seeded):
     config.write_default(seeded)
     finish_config(seeded)
-    res = runner.invoke(
-        app, [*ARGS, "--deadline", "2026-12-01", "--law-dir", str(seeded)], obj={"llm": good_llm()})
+    res = runner.invoke(app, [*ARGS, "--law-dir", str(seeded)], obj={"llm": good_llm()})
     assert res.exit_code == 0, res.output
+
+
+def test_init_has_no_deadline_flag(seeded):
+    res = runner.invoke(app, [*ARGS, "--deadline", "2026-12-01"], obj={"llm": good_llm()})
+    assert res.exit_code == 2
 
 
 def test_init_prompts_for_missing_hours(seeded):
     config.write_default(seeded)
     finish_config(seeded)
-    res = runner.invoke(app, ["init", "--skill", "python", "--to", "2"], input="1\n1\n\n\n", obj={"llm": good_llm()})
+    res = runner.invoke(app, ["init", "--skill", "python", "--to", "2"], input="1\n1\n\n", obj={"llm": good_llm()})
     assert res.exit_code == 0, res.output
 
 

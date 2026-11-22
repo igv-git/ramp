@@ -2,11 +2,11 @@
 
 Entry point `ramp` (`ramp.cli:app`). One process per command. Registered in one dispatch table (extension point for chat/stats). Exit codes: `0` ok · `1` operational failure (blocked, refusal, generation failure — message names the cause and what to try) · `2` usage error. Output via rich; no color-only meaning.
 
-## `ramp init --skill <s> --to <n> [--law-dir PATH] [--hours H] [--days D] [--deadline DATE]`
+## `ramp init --skill <s> --to <n> [--law-dir PATH] [--hours H] [--days D]`
 1. Create `$RAMP_HOME` if absent, `git init` through the fixed-argv helper, write default `config.toml` and `.gitignore`.
 2. `matrix.load` (refuses `_meta.status: mock`; refuses missing level `n`). Unknown skill or level → refusal listing the defined skills/levels and how to add one (owner decision 2026-11-17: no drafting, no freezing).
 3. `planner.check_eligibility` (LLM-judged) → tool applies refusal: print reasons, exit 1, write nothing.
-4. Ask only what the matrix lacks: honest hours/day, deadline, work goals (skipped when flags given).
+4. Ask only what the matrix lacks: honest hours/day, days, work goals (skipped when flags given).
 5. `planner.plan` → `writer.write_slice` per slice → `runner.generation_time_check` (≤ 2 regenerations then stop loudly, exit 1) → `plan.json`, `slices/NN/…`, `slice_state` (S1 `current`).
 Output: curriculum table (id, title, concepts, est. minutes), total hours vs stated hours.
 

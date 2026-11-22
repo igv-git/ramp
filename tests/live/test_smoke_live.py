@@ -41,7 +41,7 @@ def test_init_python_with_real_provider(tmp_home):
     ctx = wiring.make_context(tmp_home)
     try:
         plan = init_flow.run_init(ctx, law_dir=tmp_home, skill="python", target_level=2, hours_per_day=1.0,
-                                  days=3, deadline=None, goals=["automate scripts"])
+                                  days=3, goals=["automate scripts"])
         assert plan.slices and (tmp_home / "stacks" / "python" / "plan.json").exists()
         for i, _ in enumerate(plan.slices, start=1):
             assert "RESULT ok" in (tmp_home / "slices" / f"{i:02d}" / "gencheck.log").read_text()

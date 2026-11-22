@@ -40,7 +40,6 @@ def init_cmd(
     to: int = typer.Option(..., "--to", help="Target level"),
     hours: float | None = typer.Option(None, "--hours", help="Honest hours per day"),
     days: int | None = typer.Option(None, "--days", help="Number of days"),
-    deadline: str | None = typer.Option(None, "--deadline", help="Optional deadline"),
     law_dir: Path | None = typer.Option(None, "--law-dir", help="Folder with descriptors.yaml and claims.yaml"),
 ) -> None:
     """Plan once: check eligibility, then generate the curriculum."""
@@ -64,11 +63,10 @@ def init_cmd(
         if days is None:
             days = typer.prompt("Number of days", type=int, default=14)
         if interactive:
-            deadline = deadline or typer.prompt("Deadline (optional)", default="", show_default=False) or None
             raw = typer.prompt("Work goals, comma-separated (optional)", default="", show_default=False)
             goals = [g.strip() for g in raw.split(",") if g.strip()]
         plan = init_flow.run_init(context, law_dir=law_dir or home, skill=skill, target_level=to,
-                                  hours_per_day=hours, days=days, deadline=deadline, goals=goals)
+                                  hours_per_day=hours, days=days, goals=goals)
     except (LawError, init_flow.InitRefused, init_flow.SliceGenerationError, ProviderError) as e:
         raise _fail(f"init failed: {e}") from None
     except ConfigError as e:

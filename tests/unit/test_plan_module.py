@@ -11,7 +11,7 @@ def test_plan_json_round_trip(tmp_path):
     from ramp import models as m
 
     o = b.outline(2)
-    plan = m.Plan(skill="python", target_level=2, known={"java": 3}, hours_per_day=1, days=2, deadline=None,
+    plan = m.Plan(skill="python", target_level=2, known={"java": 3}, hours_per_day=1, days=2,
                   goals=[], concepts=o.concepts, cando_map=o.cando_map,
                   slices=[b.slice_for(1), b.slice_for(2)], created_at="2026-11-11T00:00:00+00:00")
     p = tmp_path / "stacks" / "python" / "plan.json"
@@ -97,3 +97,15 @@ def test_scaffold_symlink_inside_new_tree_is_refused(tmp_path, monkeypatch):
     with pytest.raises(scaffold.UnsafeScaffold):
         scaffold.scaffold_slice(sl, d)
     assert list(outside.iterdir()) == []
+
+
+def test_a_plan_file_written_before_deadline_was_removed_still_loads(tmp_path):
+    from ramp import models as m
+
+    plan = m.Plan(skill="python", target_level=2, known={"java": 3}, hours_per_day=1, days=2, goals=[],
+                  concepts=[m.ConceptDef(id="c", name="C", bridge_note="b")], cando_map=[], slices=[],
+                  created_at="2026-01-01T00:00:00")
+    data = json.loads(plan.model_dump_json()) | {"deadline": "2026-12-01"}
+    f = tmp_path / "plan.json"
+    f.write_text(json.dumps(data))
+    assert curriculum.read_plan(f).skill == "python"

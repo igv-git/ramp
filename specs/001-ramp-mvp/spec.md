@@ -39,7 +39,7 @@ The learner runs `ramp today`, reads a short brief for the current slice (no cod
 
 ### User Story 2 - Plan once: `ramp init` for a skill and target level (Priority: P1)
 
-The learner runs `ramp init --skill <s> --to <n>`. ramp first checks eligibility (can every can-do of the target level be verified by a local command within about a minute?), refuses honestly if not, asks only what the skill matrix cannot answer (honest hours per day, deadline, work goals), then generates a curriculum of vertical slices sized to the stated hours. The level definitions are frozen law in `descriptors.yaml`; a skill that is not defined there is refused with a message explaining how to add it by editing that file (owner decision 2026-11-17: the unknown-skill path is cut from the MVP).
+The learner runs `ramp init --skill <s> --to <n>`. ramp first checks eligibility (can every can-do of the target level be verified by a local command within about a minute?), refuses honestly if not, asks only what the skill matrix cannot answer (honest hours per day, number of days, work goals), then generates a curriculum of vertical slices sized to the stated hours. The level definitions are frozen law in `descriptors.yaml`; a skill that is not defined there is refused with a message explaining how to add it by editing that file (owner decision 2026-11-17: the unknown-skill path is cut from the MVP).
 
 **Why this priority**: Without a curriculum there is no loop; the planner stays within the language core (no tooling, installs or environments).
 
@@ -51,7 +51,7 @@ The learner runs `ramp init --skill <s> --to <n>`. ramp first checks eligibility
 2. **Given** a skill or level not defined in `descriptors.yaml`, **When** init runs, **Then** it refuses, lists the skills and levels that are defined, and says how to add one; nothing is written.
 3. **Given** a skill whose can-dos cannot be checked locally, **When** init runs, **Then** it refuses with an explanation and creates no curriculum.
 4. **Given** the descriptors file is marked mock rather than approved, **When** init runs, **Then** ramp refuses to treat it as approved law.
-5. **Given** the stated hours/day and deadline, **When** the curriculum is generated, **Then** its total sized effort does not exceed what the hours allow, and missing prerequisites are surfaced, not assumed.
+5. **Given** the stated hours/day and days, **When** the curriculum is generated, **Then** its total sized effort does not exceed what the hours allow, and missing prerequisites are surfaced, not assumed.
 6. **Given** init creates the data folder for the first time, **When** it finishes, **Then** the folder exists as a version-controlled repository.
 
 ---
@@ -150,7 +150,7 @@ Every slice must pass checks before reaching the learner: its tests collect with
 **Planning (`init`)**
 - **FR-006**: `init` MUST run the eligibility check first; the planner judges, the tool applies the refusal.
 - **FR-007**: `init` MUST use the frozen descriptors and MUST refuse, with the list of defined skills and the steps to add one, any skill or level they do not define. Slices MUST cover the language core only (the language and its standard library): the planner ignores tooling can-dos and a deterministic scope lint rejects slices that mention tools, installs, environments or versions.
-- **FR-008**: `init` MUST ask only questions the skill matrix cannot answer (honest hours/day, deadline, work goals) and size the curriculum to the stated hours.
+- **FR-008**: `init` MUST ask only questions the skill matrix cannot answer (honest hours/day, days, work goals) and size the curriculum to the stated hours.
 - **FR-009**: Claimed levels MUST only set bridge depth and MUST be labeled as claims; they MUST never be treated as earned.
 - **FR-010**: The system MUST refuse to treat a descriptors file marked mock as approved law.
 - **FR-011**: A slice MUST consist of: title, brief ≤150 words with no code, concepts, bridges with breakdown points, acceptance commands and fixtures, doc references, an optional empty-by-default context list (extension point), and status; the workspace is pre-scaffolded and each slice ends runnable.

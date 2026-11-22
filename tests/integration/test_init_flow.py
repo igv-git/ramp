@@ -10,7 +10,7 @@ from ramp.providers.port import FakeLLM
 
 def run(law_home, llm, **over):
     ctx = wiring.make_context(law_home, llm=llm)
-    args = {"skill": "python", "target_level": 2, "hours_per_day": 1.0, "days": 1, "deadline": None, "goals": []}
+    args = {"skill": "python", "target_level": 2, "hours_per_day": 1.0, "days": 1, "goals": []}
     args.update(over)
     try:
         return init_flow.run_init(ctx, law_dir=law_home, **args), ctx
@@ -50,7 +50,7 @@ def test_mock_descriptors_refused_and_nothing_written(law_home):
     try:
         with pytest.raises(LawError, match="mock"):
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         assert llm.calls == []
         nothing_written(law_home, ctx)
     finally:
@@ -62,10 +62,10 @@ def test_unknown_skill_or_level_is_refused_for_now(law_home):
     try:
         with pytest.raises(LawError, match="rust"):
             init_flow.run_init(ctx, law_dir=law_home, skill="rust", target_level=2, hours_per_day=1, days=1,
-                               deadline=None, goals=[])
+                               goals=[])
         with pytest.raises(LawError, match="level 9"):
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=9, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         nothing_written(law_home, ctx)
     finally:
         ctx.store.close()
@@ -77,7 +77,7 @@ def test_ineligible_skill_refused_with_reasons_and_nothing_written(law_home):
     try:
         with pytest.raises(init_flow.InitRefused) as ei:
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         assert "needs a GPU cluster" in ei.value.reasons
         assert [c.role for c in llm.calls] == ["planner"]
         nothing_written(law_home, ctx)
@@ -107,7 +107,7 @@ def test_three_bad_slices_stop_loudly_with_the_cause(law_home):
     try:
         with pytest.raises(init_flow.SliceGenerationError) as ei:
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         assert "green" in ei.value.cause and ei.value.slice_id == "S1"
         assert len([c for c in llm.calls if c.role == "writer"]) == 3  # 1 try + max_regenerations (2)
         assert ctx.store.list_slice_states() == []  # nothing recorded as a curriculum
@@ -155,7 +155,7 @@ def test_second_init_never_overwrites_progress(law_home):
         before = (law_home / "stacks" / "python" / "plan.json").read_text()
         with pytest.raises(init_flow.InitRefused, match="already exists"):
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         assert (law_home / "stacks" / "python" / "plan.json").read_text() == before
     finally:
         ctx.store.close()
@@ -184,7 +184,7 @@ def test_slice_that_keeps_mentioning_tooling_stops_loudly(law_home):
     try:
         with pytest.raises(init_flow.SliceGenerationError) as ei:
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         assert "language core" in ei.value.cause
         assert len([c for c in llm.calls if c.role == "writer"]) == 3
         assert ctx.store.list_slice_states() == [] and not (law_home / "stacks").exists()
@@ -227,7 +227,7 @@ def test_outline_that_always_plans_tooling_is_refused(law_home):
     try:
         with pytest.raises(init_flow.InitRefused) as ei:
             init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1,
-                               days=1, deadline=None, goals=[])
+                               days=1, goals=[])
         assert "language core" in str(ei.value)
         nothing_written(law_home, ctx)
     finally:

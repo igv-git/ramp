@@ -85,7 +85,7 @@ Your counts, which the dogfood report is built from, are: **slices completed, ca
 ramp init --skill python --to 2
 ```
 
-ramp asks how many honest hours per day you can spend and for how many days (the default plan is 14 days of 45 minutes, about 10 hours of sessions and roughly 7 hours of hands-on work). You can also pass `--hours`, `--days` and `--deadline` to skip the questions.
+ramp asks how many honest hours per day you can spend and for how many days (the default plan is 14 days of 45 minutes, about 10 hours of sessions and roughly 7 hours of hands-on work). You can also pass `--hours` and `--days` to skip those two questions. It then asks for optional work goals, which are only a hint to the planner.
 
 What happens:
 

@@ -38,7 +38,7 @@ def test_a_regenerated_slice_still_ends_with_a_passing_log(law_home):
                    "writer": [b.draft_for(1, test=b.GREEN_TEST), b.draft_for(1)]})
     ctx = wiring.make_context(law_home, llm=llm)
     init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1.0, days=1,
-                       deadline=None, goals=[])
+                       goals=[])
     results = [line for line in (law_home / "slices" / "01" / "gencheck.log").read_text().splitlines()
                if line.startswith("RESULT")]
     assert [r.split()[1] for r in results] == ["fail", "ok"]

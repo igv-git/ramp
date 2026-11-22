@@ -41,7 +41,7 @@ class SliceGenerationError(Exception):
 
 
 def run_init(ctx, *, law_dir: Path, skill: str, target_level: int, hours_per_day: float, days: int,
-             deadline: str | None, goals: list[str]) -> Plan:
+             goals: list[str]) -> Plan:
     regen = ctx.config.caps.max_regenerations
     plan_path = paths.plan_path(skill, ctx.home)
     if ctx.store.list_slice_states() or plan_path.exists():
@@ -101,7 +101,7 @@ def run_init(ctx, *, law_dir: Path, skill: str, target_level: int, hours_per_day
             raise SliceGenerationError(item.id, feedback or "unknown")
 
     plan = Plan(skill=skill, target_level=target_level, known=known, hours_per_day=hours_per_day, days=days,
-                deadline=deadline, goals=goals, concepts=outline.concepts, cando_map=outline.cando_map,
+                goals=goals, concepts=outline.concepts, cando_map=outline.cando_map,
                 slices=slices, created_at=datetime.now(UTC).isoformat(timespec="seconds"))
     gate.apply_plan(ctx.store, plan, plan_path)
     return plan

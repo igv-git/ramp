@@ -89,7 +89,7 @@ class PlanOutline(BaseModel):    # planner output; validated: unique ids, indexe
 
 class Plan(BaseModel):           # stacks/<skill>/plan.json (immutable after init)
     skill: str; target_level: int; known: dict[str,int]
-    hours_per_day: float; days: int; deadline: str | None; goals: list[str]
+    hours_per_day: float; days: int; goals: list[str]   # `deadline` was removed 2026-11-22 (recorded, never used); old plan files with it still load
     concepts: list[ConceptDef]   # {id, name, bridge_note}
     cando_map: list[CandoMap]
     slices: list[Slice]          # briefs + acceptance; scaffold files live in slices/NN/
