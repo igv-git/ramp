@@ -18,8 +18,7 @@ def tmp_home(tmp_path, monkeypatch):
 
 
 def good_config_text() -> str:
-    return (config.default_toml().replace("REPLACE_ME_DIFFERENT", "rev-model")
-            .replace("REPLACE_ME_CHEAP", "cheap-model").replace('model = "REPLACE_ME"', 'model = "strong-model"'))
+    return config.default_toml()
 
 
 @pytest.fixture

@@ -32,12 +32,12 @@ def finish_config(home):
 
 
 def test_init_first_run_creates_home_repo_and_default_config(seeded):
-    # no config yet: init creates it, but placeholder models stop the run with an actionable message
+    # no config yet: init creates it with working default models; without an API key it stops before any call
     res = runner.invoke(app, ARGS, obj={})
     assert res.exit_code == 1
     assert (seeded / "config.toml").exists() and (seeded / ".git").is_dir()
     assert "profile.db" in (seeded / ".gitignore").read_text().split()
-    assert "config.toml" in res.output and "model" in res.output
+    assert "API_KEY" in res.output
     assert not (seeded / "stacks").exists()
 
 

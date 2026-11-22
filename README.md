@@ -45,7 +45,7 @@ You do not copy them. The first `ramp init` creates `~/.ramp` with `config.toml`
 
 ### 2. Choose your models
 
-The first `ramp init` creates `~/.ramp/config.toml` with placeholder models and stops. Open it and set the `model` for each of the four roles:
+The first `ramp init` creates `~/.ramp/config.toml` with working default models (Opus for the planner, Sonnet for the writer, Haiku for the reviewer and grader). Open it to change the `model` of any of the four roles:
 
 | Role | Used for | Suggested kind |
 |---|---|---|
@@ -66,9 +66,9 @@ export OPENROUTER_API_URL=...   # optional: replaces base_url (default https://o
 ## Quickstart
 
 ```bash
-ramp init --skill python --to 2        # 1. first run creates ~/.ramp (config, descriptors, claims) and stops:
-                                       #    set the four models, edit claims.yaml honestly, then
-export API_KEY=...          #    export your key and run the same command again
+export API_KEY=...                     # 0. your provider key (read from the environment, never written to disk)
+ramp init --skill python --to 2        # 1. first run creates ~/.ramp (config, descriptors, claims) with working
+                                       #    default models; edit claims.yaml honestly, change models if you like
 ramp today                             # 2. each day: review cards first, then the slice brief
 # 3. write your code in ~/.ramp/slices/NN/workspace/src/, by hand
 ramp submit                            # 4. checks + hints; on a pass, answer the teach-back to unlock the next slice
@@ -173,7 +173,7 @@ Each brief lists numbered comparisons to your old stack ("Bridges to what you kn
 | You see | Meaning and fix |
 |---|---|
 | `... is marked 'mock', not approved law` | `descriptors.yaml` is not approved. Set `_meta: status: approved` once you have reviewed the text. |
-| `config.toml: set roles.<role>.model` | Replace the placeholder model for that role in `~/.ramp/config.toml`. |
+| `config.toml: set roles.<role>.model` | You left a `REPLACE_ME` model in `~/.ramp/config.toml`; set a real model id for that role. |
 | `environment variable API_KEY is not set` | Export the key, or change `api_key_env` for that role. |
 | `roles.reviewer.model must differ from roles.writer.model` | Pick a different reviewer model. |
 | `init failed: ... not checkable by local commands` | The skill or level cannot be taught this way; ramp lists the reasons. |

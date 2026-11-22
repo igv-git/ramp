@@ -3,13 +3,19 @@ import pytest
 from ramp import config
 
 
-def test_default_toml_only_fails_on_placeholder_models(tmp_path):
+def test_default_toml_loads_and_every_role_has_a_usable_model(tmp_path):
     f = tmp_path / "config.toml"
     f.write_text(config.default_toml())
-    cfg = config.load_config(f)  # structural validation passes
+    cfg = config.load_config(f)
     for role in config.ROLES:
-        with pytest.raises(config.ConfigError, match=rf"roles\.{role}\.model"):
-            cfg.require_model(role)
+        assert cfg.require_model(role).model == config.DEFAULT_MODELS[role]  # a fresh init does not stop on models
+
+
+def test_require_model_still_refuses_a_replace_me_model(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text(config.default_toml().replace("claude-opus-5-5", "REPLACE_ME", 1))
+    with pytest.raises(config.ConfigError, match=r"roles\.planner\.model"):
+        config.load_config(f).require_model("planner")
 
 
 def test_default_has_no_secret_and_names_env_var():
