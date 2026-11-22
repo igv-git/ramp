@@ -16,6 +16,7 @@ max_retries              = 2        # provider retries, backoff 1s then 3s
 
 [roles.planner]               # strong
 base_url   = "https://openrouter.ai/api/v1"
+base_url_env = "OPENROUTER_API_URL"   # optional: name of an env var; when set and non-empty it replaces base_url
 api_key_env = "API_KEY"   # name of an env var; the key itself is never stored
 model      = "REPLACE_ME"           # OpenRouter model id (owner-chosen; unverified placeholder)
 max_input_tokens  = 24000
@@ -51,7 +52,7 @@ usd_per_mtok_in = 0.0
 usd_per_mtok_out = 0.0
 ```
 
-**Validation rules**: all four roles present; `roles.reviewer.model != roles.writer.model` (error otherwise); `model` not starting with `REPLACE_ME` when a call is attempted (clear message naming the file and key); `pass_threshold` in 0..5; caps > 0; `base_url` https, or http only for loopback (local endpoints allowed, Art. VIII); unknown keys are errors. A local endpoint (Ollama / LM Studio) is a valid `base_url`; its `api_key_env` may be empty.
+**Validation rules**: all four roles present; `roles.reviewer.model != roles.writer.model` (error otherwise); `model` not starting with `REPLACE_ME` when a call is attempted (clear message naming the file and key); `pass_threshold` in 0..5; caps > 0; `base_url` https, or http only for loopback (local endpoints allowed, Art. VIII); unknown keys are errors. If `base_url_env` names a set, non-empty environment variable, its value replaces `base_url` at call time and must pass the same https/loopback rule (error otherwise). A local endpoint (Ollama / LM Studio) is a valid `base_url`; its `api_key_env` may be empty.
 
 **Optional `thinking`** (per role, bool, default unset): `thinking = false` asks the provider not to spend output tokens on hidden reasoning. It is applied only on the native Anthropic endpoint (`base_url` host ends with `anthropic.com`, sent as `thinking: {type: disabled}`) and ignored elsewhere. The generated default sets it to `false` for `reviewer` and `grader`, whose replies are short structured data.
 

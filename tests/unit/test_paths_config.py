@@ -102,3 +102,24 @@ def test_same_model_for_reviewer_and_writer_needs_explicit_opt_in(tmp_path):
 
 def test_opt_in_defaults_to_off(tmp_path):
     assert load(tmp_path, valid_toml()).gate.allow_same_reviewer_model is False
+
+
+def _role(**kw):
+    return config.RoleConfig(base_url="https://openrouter.ai/api/v1", model="m", max_input_tokens=1,
+                             max_output_tokens=1, **kw)
+
+
+def test_base_url_env_overrides_base_url():
+    rc = _role(base_url_env="U").resolve_base_url({"U": "http://localhost:11434/v1"})
+    assert rc.base_url == "http://localhost:11434/v1"
+
+
+def test_base_url_env_unset_or_empty_keeps_base_url():
+    assert _role(base_url_env="U").resolve_base_url({}).base_url == "https://openrouter.ai/api/v1"
+    assert _role(base_url_env="U").resolve_base_url({"U": " "}).base_url == "https://openrouter.ai/api/v1"
+    assert _role().resolve_base_url({"U": "https://x.example"}).base_url == "https://openrouter.ai/api/v1"
+
+
+def test_base_url_env_value_must_be_https_or_loopback():
+    with pytest.raises(config.ConfigError, match="U"):
+        _role(base_url_env="U").resolve_base_url({"U": "http://example.com/v1"})

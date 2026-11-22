@@ -60,6 +60,7 @@ Then export your key. It is read from the environment, never written to disk:
 
 ```bash
 export API_KEY=...
+export OPENROUTER_API_URL=...   # optional: replaces base_url (default https://openrouter.ai/api/v1)
 ```
 
 ## Quickstart

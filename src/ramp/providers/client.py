@@ -67,7 +67,7 @@ class ProviderClient:
 
     def complete(self, role: str, system: str, user: str, output_type):
         call = uuid.uuid4().hex[:8]
-        rc = self.config.require_model(role)
+        rc = self.config.require_model(role).resolve_base_url()
         base = {"call": call, "role": role, "model": rc.model, "system": system, "user": user}
         key = ""
         if rc.api_key_env:

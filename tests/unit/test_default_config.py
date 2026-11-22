@@ -42,3 +42,8 @@ def test_default_config_turns_thinking_off_for_reviewer_and_grader_only():
     roles = tomllib.loads(config.default_toml())["roles"]
     assert roles["reviewer"]["thinking"] is False and roles["grader"]["thinking"] is False
     assert "thinking" not in roles["planner"] and "thinking" not in roles["writer"]
+
+
+def test_default_names_the_base_url_env_var_and_keeps_a_valid_fallback_url():
+    text = config.default_toml()
+    assert 'base_url_env = "OPENROUTER_API_URL"' in text and 'base_url = "https://openrouter.ai/api/v1"' in text

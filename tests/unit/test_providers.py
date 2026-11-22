@@ -234,3 +234,27 @@ def test_day_cap_uses_ledger_and_resets_next_day():
 
 def test_transport_protocol_exists():
     assert Transport is not None
+
+
+def test_transport_receives_the_base_url_from_the_env_var(monkeypatch):
+    monkeypatch.setenv("TEST_KEY", "k")
+    monkeypatch.setenv("TEST_URL", "http://localhost:11434/v1")
+    seen = []
+
+    def t(rc, key, system, user, output_type):
+        seen.append(rc.base_url)
+        return TransportResult(output=output_type(x=1), tokens_in=1, tokens_out=1)
+
+    make_client(t, planner=role(base_url_env="TEST_URL")).complete("planner", "s", "u", Out)
+    assert seen == ["http://localhost:11434/v1"]
+
+
+def test_a_bad_base_url_env_value_is_refused_before_any_call(monkeypatch):
+    from ramp.config import ConfigError
+
+    monkeypatch.setenv("TEST_KEY", "k")
+    monkeypatch.setenv("TEST_URL", "http://example.com/v1")
+    calls = []
+    with pytest.raises(ConfigError, match="TEST_URL"):
+        make_client(ok_transport(calls), planner=role(base_url_env="TEST_URL")).complete("planner", "s", "u", Out)
+    assert calls == []

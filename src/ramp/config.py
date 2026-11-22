@@ -1,6 +1,8 @@
 """config.toml loading and validation (contracts/config.toml.md). Shared leaf utility."""
 
+import os
 import tomllib
+from collections.abc import Mapping
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -37,8 +39,19 @@ class Caps(_Strict):
     max_retries: int = Field(default=2, ge=0)
 
 
+def _check_base_url(url: str) -> None:
+    u = urlparse(url)
+    if u.scheme == "https" and u.hostname:
+        return
+    if u.scheme == "http" and u.hostname in _LOOPBACK:
+        return
+    raise ValueError("base_url must be https (http only for loopback)")
+
+
 class RoleConfig(_Strict):
     base_url: str
+    # name of an env var holding the endpoint URL; when set and non-empty it replaces base_url at call time
+    base_url_env: str = ""
     api_key_env: str = ""
     model: str
     max_input_tokens: int = Field(gt=0)
@@ -51,12 +64,20 @@ class RoleConfig(_Strict):
 
     @model_validator(mode="after")
     def _check_url(self):
-        u = urlparse(self.base_url)
-        if u.scheme == "https" and u.hostname:
+        _check_base_url(self.base_url)
+        return self
+
+    def resolve_base_url(self, environ: Mapping[str, str] | None = None) -> "RoleConfig":
+        """This role with base_url taken from base_url_env when that variable is set (same https/loopback rule)."""
+        env = os.environ if environ is None else environ
+        url = env.get(self.base_url_env, "").strip() if self.base_url_env else ""
+        if not url:
             return self
-        if u.scheme == "http" and u.hostname in _LOOPBACK:
-            return self
-        raise ValueError("base_url must be https (http only for loopback)")
+        try:
+            _check_base_url(url)
+        except ValueError as e:
+            raise ConfigError(f"environment variable {self.base_url_env}: {e}") from None
+        return self.model_copy(update={"base_url": url})
 
 
 class Config(_Strict):
@@ -105,6 +126,7 @@ def default_toml() -> str:
         think = "" if thinking is None else f"thinking = {str(thinking).lower()}\n"
         return (
             'base_url = "https://openrouter.ai/api/v1"\n'
+            'base_url_env = "OPENROUTER_API_URL"\n'
             'api_key_env = "API_KEY"\n'
             f'model = "{model}"\n'
             f"max_input_tokens = {max_in}\n"
@@ -116,6 +138,7 @@ def default_toml() -> str:
     return (
         "# ramp configuration. Set the four `model` ids (and prices for the cost meter).\n"
         "# The API key is read from the environment variable named by api_key_env.\n"
+        "# If the variable named by base_url_env is set, its value replaces base_url.\n"
         "schema_version = 1\n\n"
         "[gate]\npass_threshold = 3\n\n"
         "[caps]\n"
