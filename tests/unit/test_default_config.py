@@ -14,7 +14,7 @@ def test_default_toml_only_fails_on_placeholder_models(tmp_path):
 
 def test_default_has_no_secret_and_names_env_var():
     text = config.default_toml()
-    assert 'api_key_env = "OPENROUTER_API_KEY"' in text
+    assert 'api_key_env = "API_KEY"' in text
     assert "sk-" not in text and "api_key =" not in text
 
 

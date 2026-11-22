@@ -9,7 +9,7 @@ def valid_toml(**over) -> str:
     def role(model):
         return f"""
 base_url = "https://openrouter.ai/api/v1"
-api_key_env = "OPENROUTER_API_KEY"
+api_key_env = "API_KEY"
 model = "{model}"
 max_input_tokens = 1000
 max_output_tokens = 500

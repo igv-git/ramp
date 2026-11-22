@@ -105,7 +105,7 @@ def default_toml() -> str:
         think = "" if thinking is None else f"thinking = {str(thinking).lower()}\n"
         return (
             'base_url = "https://openrouter.ai/api/v1"\n'
-            'api_key_env = "OPENROUTER_API_KEY"\n'
+            'api_key_env = "API_KEY"\n'
             f'model = "{model}"\n'
             f"max_input_tokens = {max_in}\n"
             f"max_output_tokens = {max_out}\n"

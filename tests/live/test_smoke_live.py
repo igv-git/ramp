@@ -1,6 +1,6 @@
 """Opt-in live smoke: real provider, real models. Skipped unless a key and a finished config are present.
 
-Run:  OPENROUTER_API_KEY=... uv run pytest tests/live -m live -s
+Run:  API_KEY=... uv run pytest tests/live -m live -s
 Config: RAMP_LIVE_CONFIG (path to a config.toml) or ~/.ramp/config.toml, with no REPLACE_ME models.
 """
 
@@ -20,8 +20,8 @@ CONFIG = Path(os.environ.get("RAMP_LIVE_CONFIG", Path.home() / ".ramp" / "config
 
 
 def _ready() -> str | None:
-    if not os.environ.get("OPENROUTER_API_KEY"):
-        return "OPENROUTER_API_KEY not set"
+    if not os.environ.get("API_KEY"):
+        return "API_KEY not set"
     if not CONFIG.exists():
         return f"{CONFIG} not found"
     try:

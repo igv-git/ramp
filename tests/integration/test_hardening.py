@@ -25,7 +25,7 @@ PRICE = 100.0  # USD per million tokens: a 1000-token call costs $0.10
 
 @pytest.fixture(autouse=True)
 def api_key(monkeypatch):
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("API_KEY", "sk-test")
 
 
 def write_config(home, *, per_command=0.50, per_day=3.00, regen=2):

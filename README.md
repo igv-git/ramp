@@ -59,7 +59,7 @@ Use model ids as OpenRouter lists them. ramp refuses a config where the reviewer
 Then export your key. It is read from the environment, never written to disk:
 
 ```bash
-export OPENROUTER_API_KEY=...
+export API_KEY=...
 ```
 
 ## Quickstart
@@ -67,7 +67,7 @@ export OPENROUTER_API_KEY=...
 ```bash
 ramp init --skill python --to 2        # 1. first run creates ~/.ramp (config, descriptors, claims) and stops:
                                        #    set the four models, edit claims.yaml honestly, then
-export OPENROUTER_API_KEY=...          #    export your key and run the same command again
+export API_KEY=...          #    export your key and run the same command again
 ramp today                             # 2. each day: review cards first, then the slice brief
 # 3. write your code in ~/.ramp/slices/NN/workspace/src/, by hand
 ramp submit                            # 4. checks + hints; on a pass, answer the teach-back to unlock the next slice
@@ -173,7 +173,7 @@ Each brief lists numbered comparisons to your old stack ("Bridges to what you kn
 |---|---|
 | `... is marked 'mock', not approved law` | `descriptors.yaml` is not approved. Set `_meta: status: approved` once you have reviewed the text. |
 | `config.toml: set roles.<role>.model` | Replace the placeholder model for that role in `~/.ramp/config.toml`. |
-| `environment variable OPENROUTER_API_KEY is not set` | Export the key, or change `api_key_env` for that role. |
+| `environment variable API_KEY is not set` | Export the key, or change `api_key_env` for that role. |
 | `roles.reviewer.model must differ from roles.writer.model` | Pick a different reviewer model. |
 | `init failed: ... not checkable by local commands` | The skill or level cannot be taught this way; ramp lists the reasons. |
 | `could not produce a valid slice S3: ...` | The model kept writing a slice that failed the pre-flight check. Run `init` again; see `~/.ramp/slices/NN/gencheck.log` for the cause. |

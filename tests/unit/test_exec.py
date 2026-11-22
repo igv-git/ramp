@@ -53,16 +53,16 @@ def test_start_failure(ws, monkeypatch):
 
 
 def test_stripped_env_exact_keys_and_no_secrets(ws, monkeypatch):
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-secret")
+    monkeypatch.setenv("API_KEY", "sk-secret")
     monkeypatch.setenv("SOME_OTHER", "x")
     env = rexec.stripped_env(ws)
     assert set(env) == {"PATH", "HOME", "LANG", "LC_ALL", "PYTHONDONTWRITEBYTECODE", "PYTHONPATH"}
     assert env["HOME"] == str(ws) and env["PYTHONPATH"] == str(ws / "src")
     assert env["PYTHONDONTWRITEBYTECODE"] == "1"
     assert "sk-secret" not in "".join(env.values())
-    r = run(ws, "import os\nprint(sorted(os.environ))\nprint(os.environ.get('OPENROUTER_API_KEY'))\n")
+    r = run(ws, "import os\nprint(sorted(os.environ))\nprint(os.environ.get('API_KEY'))\n")
     lines = r.output.strip().splitlines()
-    assert "OPENROUTER_API_KEY" not in lines[0] and "SOME_OTHER" not in lines[0]
+    assert "API_KEY" not in lines[0] and "SOME_OTHER" not in lines[0]
     assert lines[-1] == "None"
 
 
