@@ -53,3 +53,11 @@ def test_default_config_turns_thinking_off_for_reviewer_and_grader_only():
 def test_default_names_the_base_url_env_var_and_keeps_a_valid_fallback_url():
     text = config.default_toml()
     assert 'base_url_env = "OPENROUTER_API_URL"' in text and 'base_url = "https://openrouter.ai/api/v1"' in text
+
+
+def test_default_prices_match_the_published_rates_and_make_the_caps_work(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text(config.default_toml())
+    cfg = config.load_config(f)
+    got = {r: (cfg.roles[r].usd_per_mtok_in, cfg.roles[r].usd_per_mtok_out) for r in config.ROLES}
+    assert got == {"planner": (4.0, 20.0), "writer": (2.0, 10.0), "reviewer": (0.10, 0.50), "grader": (0.10, 0.50)}

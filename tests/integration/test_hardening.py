@@ -1,5 +1,7 @@
 """T076: cost-cap aborts, interrupts, spend persistence and regeneration caps, with the real ProviderClient."""
 
+import re
+
 import builders as b
 import pytest
 from conftest import good_config_text, write_solution
@@ -29,7 +31,7 @@ def api_key(monkeypatch):
 
 
 def write_config(home, *, per_command=0.50, per_day=3.00, regen=2):
-    text = (good_config_text().replace("usd_per_mtok_in = 0.0", f"usd_per_mtok_in = {PRICE}")
+    text = (re.sub(r"usd_per_mtok_in = [0-9.]+", f"usd_per_mtok_in = {PRICE}", good_config_text())
             .replace("max_cost_usd_per_command = 0.50", f"max_cost_usd_per_command = {per_command}")
             .replace("max_cost_usd_per_day = 3.00", f"max_cost_usd_per_day = {per_day}")
             .replace("max_regenerations = 2", f"max_regenerations = {regen}"))
