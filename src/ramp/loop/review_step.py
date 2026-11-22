@@ -46,7 +46,7 @@ def sanitize(out: ReviewerOutput) -> ReviewerOutput:
         symptom = issue.symptom if check_text(issue.symptom).ok else "this part does not behave as the brief describes"
         hint = issue.hint
         if not check_hint(hint, issue.location).ok:
-            hint = fallback_hint(issue.location, symptom, issue.concept)
+            hint = fallback_hint(issue.location, issue.concept)
         issues.append(issue.model_copy(update={"symptom": symptom, "hint": hint}))
     check = out.understanding_check if check_text(out.understanding_check).ok else _GENERIC_CHECK
     ratings = [r if check_text(r.delta_reason).ok else r.model_copy(update={"delta_reason": _GENERIC_REASON})
