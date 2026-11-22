@@ -56,6 +56,8 @@ The first `ramp init` creates `~/.ramp/config.toml` with working default models 
 
 Use the model ids your endpoint expects. ramp refuses a config where the reviewer and writer use the same model. The default config also carries the published Anthropic prices per million tokens (Opus 5.5 $4 in / $20 out, Sonnet 5.5 $2 / $10, Haiku 5.5 $0.10 / $0.50, checked 2026-11-22) so the cost meter works. If your provider charges differently, edit `usd_per_mtok_in` and `usd_per_mtok_out`; a price of 0.0 turns the spending caps off for that role. The caps default to $0.50 per command and $3.00 per day.
 
+Behind an Azure-OpenAI-style proxy (route `/openai/deployments/<model>/chat/completions?api-version=...`, key in an `api-key` header), set `base_url` to the host only, `model` to the deployment name and `api_version` to the version from your working curl, for example `api_version = "2023-12-01-preview"`.
+
 Then export your key. It is read from the environment, never written to disk:
 
 ```bash

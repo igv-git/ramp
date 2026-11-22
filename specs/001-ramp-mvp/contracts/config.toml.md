@@ -54,6 +54,8 @@ usd_per_mtok_out = 0.50
 
 **Validation rules**: all four roles present; `roles.reviewer.model != roles.writer.model` (error otherwise); `model` not starting with `REPLACE_ME` when a call is attempted (clear message naming the file and key; the generated defaults are working models, so a fresh `init` does not stop on this); `pass_threshold` in 0..5; caps > 0; `base_url` https, or http only for loopback (local endpoints allowed, Art. VIII); unknown keys are errors. If `base_url_env` names a set, non-empty environment variable, its value replaces `base_url` at call time and must pass the same https/loopback rule (error otherwise). A local endpoint (Ollama / LM Studio) is a valid `base_url`; its `api_key_env` may be empty.
 
+**Optional `api_version`** (per role, string, default empty): set it for an Azure-OpenAI-style proxy. `base_url` is then the host only (for example `https://proxy.example.com`), the request goes to `<base_url>/openai/deployments/<model>/chat/completions?api-version=<api_version>`, `model` is the deployment name, and the key is sent in an `api-key` header instead of `Authorization: Bearer`. Empty keeps the plain OpenAI-style `<base_url>/chat/completions`.
+
 **Optional `thinking`** (per role, bool, default unset): `thinking = false` asks the provider not to spend output tokens on hidden reasoning. It is applied only on the native Anthropic endpoint (`base_url` host ends with `anthropic.com`, sent as `thinking: {type: disabled}`) and ignored elsewhere. The generated default sets it to `false` for `reviewer` and `grader`, whose replies are short structured data.
 
 **Egress**: `providers` sends brief + diff + test output (submit) and written answers (cards, teach-back); nothing else.

@@ -59,6 +59,9 @@ class RoleConfig(_Strict):
     # name of an env var holding the endpoint URL; when set and non-empty it replaces base_url at call time
     base_url_env: str = ""
     api_key_env: str = ""
+    # set (e.g. "2023-12-01-preview") for an Azure-OpenAI-style endpoint: base_url is then the host only, the route is
+    # /openai/deployments/<model>/chat/completions?api-version=<this> and the key goes in an `api-key` header
+    api_version: str = ""
     model: str
     max_input_tokens: int = Field(gt=0)
     max_output_tokens: int = Field(gt=0)
