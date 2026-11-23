@@ -20,7 +20,7 @@ Each decision: Decision · Rationale · Alternatives. Facts marked (verified) we
 
 **D9. Fingerprint** = sha256 of canonical JSON (`sort_keys`, no whitespace): `{"argv": [[...],...], "files": [[relpath, sha256],...sorted]}` over `tests/`, `fixtures/`, `expected/` under the slice workspace. Learner code dir (`src/`) is excluded.
 
-**D10. Stripped environment.** `env = {PATH: dirname(python)+":/usr/bin:/bin", HOME: <workspace>, LANG, LC_ALL, PYTHONDONTWRITEBYTECODE=1, PYTHONPATH=<workspace>/src}`. Provider keys and everything else are dropped, so generated tests cannot read `OPENROUTER_API_KEY` (cheap mitigation of the stated residual risk; network still available).
+**D10. Stripped environment.** `env = {PATH: dirname(python)+":/usr/bin:/bin", HOME: <workspace>, LANG, LC_ALL, PYTHONDONTWRITEBYTECODE=1, PYTHONPATH=<workspace>/src}`. Provider keys and everything else are dropped, so generated tests cannot read `API_KEY` (cheap mitigation of the stated residual risk; network still available).
 
 **D11. Export.** Deterministic JSONL (sorted keys, one object per line, stable order) so git diffs are readable; commit through `runner.git_helper` with fixed argv `git -C <home> add -A`, `git -C <home> diff --cached --quiet` (skip if clean), `git -C <home> commit -m "ramp export <UTC-ISO>"`. `profile.db` is gitignored.
 

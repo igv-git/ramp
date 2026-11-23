@@ -18,7 +18,7 @@ def store(tmp_home):
 def make_plan(n=2, **over):
     o = b.outline(n)
     kw = {"skill": "python", "target_level": 2, "known": {"java": 3}, "hours_per_day": 1, "days": 2,
-          "deadline": None, "goals": [], "concepts": o.concepts, "cando_map": o.cando_map,
+          "goals": [], "concepts": o.concepts, "cando_map": o.cando_map,
           "slices": [b.slice_for(i) for i in range(1, n + 1)], "created_at": "2026-11-11T00:00:00+00:00"}
     kw.update(over)
     return m.Plan(**kw)

@@ -1,5 +1,7 @@
 """T076: cost-cap aborts, interrupts, spend persistence and regeneration caps, with the real ProviderClient."""
 
+import re
+
 import builders as b
 import pytest
 from conftest import good_config_text, write_solution
@@ -25,11 +27,11 @@ PRICE = 100.0  # USD per million tokens: a 1000-token call costs $0.10
 
 @pytest.fixture(autouse=True)
 def api_key(monkeypatch):
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("API_KEY", "sk-test")
 
 
 def write_config(home, *, per_command=0.50, per_day=3.00, regen=2):
-    text = (good_config_text().replace("usd_per_mtok_in = 0.0", f"usd_per_mtok_in = {PRICE}")
+    text = (re.sub(r"usd_per_mtok_in = [0-9.]+", f"usd_per_mtok_in = {PRICE}", good_config_text())
             .replace("max_cost_usd_per_command = 0.50", f"max_cost_usd_per_command = {per_command}")
             .replace("max_cost_usd_per_day = 3.00", f"max_cost_usd_per_day = {per_day}")
             .replace("max_regenerations = 2", f"max_regenerations = {regen}"))
@@ -215,12 +217,12 @@ def test_interrupt_during_init_leaves_no_curriculum_and_init_can_be_rerun(law_ho
     ctx = wiring.make_context(law_home, llm=llm)
     with pytest.raises(KeyboardInterrupt):
         init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1.0, days=1,
-                           deadline=None, goals=[])
+                           goals=[])
     assert ctx.store.list_slice_states() == [] and not paths.plan_path("python", law_home).exists()
     llm = FakeLLM({"planner": [b.eligible(), b.outline(2, 30)], "writer": [b.draft_for(1), b.draft_for(2)]})
     ctx.llm = llm
     plan = init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1.0, days=1,
-                              deadline=None, goals=[])
+                              goals=[])
     assert len(plan.slices) == 2 and len(ctx.store.list_slice_states()) == 2
     ctx.store.close()
 
@@ -248,7 +250,7 @@ def test_slice_generation_is_capped_by_max_regenerations(law_home, regen):
     ctx.config = ctx.config.model_copy(update={"caps": ctx.config.caps.model_copy(update={"max_regenerations": regen})})
     with pytest.raises(init_flow.SliceGenerationError):
         init_flow.run_init(ctx, law_dir=law_home, skill="python", target_level=2, hours_per_day=1.0, days=1,
-                           deadline=None, goals=[])
+                           goals=[])
     assert len([c for c in ctx.llm.calls if c.role == "writer"]) == 1 + regen
     log = (paths.slice_dir(1, law_home) / "gencheck.log").read_text()
     assert log.count("RESULT fail") == 1 + regen

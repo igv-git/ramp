@@ -101,3 +101,12 @@ def test_badly_named_test_file_is_called_out(sdir):
 def test_accepts_the_underscore_test_suffix(sdir):
     write_test(sdir, GOOD, name="wc_test.py")
     assert gencheck.generation_time_check(sdir, make_slice()).ok
+
+
+@pytest.mark.parametrize("flags", [["-v"], ["-vv"], ["-q"], ["-v", "-x"], ["-v", "--tb=short"]])
+def test_acceptance_command_with_verbosity_flags_still_counts_the_tests(sdir, flags):
+    # the collect pass adds -q; a -v already in the command used to cancel it and hide every test
+    write_test(sdir, GOOD)
+    r = gencheck.generation_time_check(sdir, make_slice([("python", "-m", "pytest", "tests/test_a.py", *flags)]))
+    assert r.ok, r.reason
+    assert r.collected == 1

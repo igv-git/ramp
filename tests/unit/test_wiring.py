@@ -21,8 +21,7 @@ def store(tmp_home):
 
 
 def good_config_text():
-    return config.default_toml().replace("REPLACE_ME_DIFFERENT", "rev-model").replace(
-        "REPLACE_ME_CHEAP", "cheap-model").replace('model = "REPLACE_ME"', 'model = "strong-model"')
+    return config.default_toml()
 
 
 def test_ledger_roundtrip_and_day_reset(store):
@@ -38,7 +37,7 @@ def test_ledger_roundtrip_and_day_reset(store):
 
 def test_make_context_builds_without_network(tmp_home, monkeypatch):
     (tmp_home / "config.toml").write_text(good_config_text())
-    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("API_KEY", "k")
     ctx = wiring.make_context(tmp_home)
     try:
         assert ctx.config.gate.pass_threshold == 3
@@ -50,18 +49,18 @@ def test_make_context_builds_without_network(tmp_home, monkeypatch):
 
 def test_missing_key_error_names_variable_and_role(tmp_home, monkeypatch):
     (tmp_home / "config.toml").write_text(good_config_text())
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
     ctx = wiring.make_context(tmp_home)
     try:
-        with pytest.raises(ProviderFailed, match=r"OPENROUTER_API_KEY"):
+        with pytest.raises(ProviderFailed, match=r"API_KEY"):
             ctx.llm.complete("planner", "s", "u", Out)
     finally:
         ctx.store.close()
 
 
 def test_placeholder_config_fails_at_use_not_at_build(tmp_home, monkeypatch):
-    (tmp_home / "config.toml").write_text(config.default_toml())
-    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    (tmp_home / "config.toml").write_text(config.default_toml().replace("claude-opus-5-5", "REPLACE_ME", 1))
+    monkeypatch.setenv("API_KEY", "k")
     ctx = wiring.make_context(tmp_home)
     try:
         with pytest.raises(config.ConfigError, match="roles.planner.model"):

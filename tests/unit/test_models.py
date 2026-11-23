@@ -114,7 +114,7 @@ def test_reviewer_output_has_no_code_fields():
 def make_plan(est=40, hours=1.0, days=1):
     return m.Plan(
         skill="python", target_level=2, known={"java": 3}, hours_per_day=hours, days=days,
-        deadline=None, goals=[], concepts=[m.ConceptDef(id="counter", name="Counter", bridge_note="b")],
+        goals=[], concepts=[m.ConceptDef(id="counter", name="Counter", bridge_note="b")],
         cando_map=[m.CandoMap(cando="counts words", concepts=["counter"])],
         slices=[make_slice(est_minutes=est)], created_at="2026-11-10T00:00:00Z",
     )

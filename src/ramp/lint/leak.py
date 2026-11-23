@@ -95,21 +95,16 @@ def check_hint(hint: str, location: str | None = None) -> LintResult:
     return LintResult(not rules, rules)
 
 
-_GENERIC_SYMPTOM = "this part does not behave the way the brief describes"
-
-
 def _clean(text: str, limit: int) -> str:
     first = re.split(r"(?<=[.!?])\s+", text.strip())[0].strip().rstrip(".!?:;, ")
     return first[:limit]
 
 
-def fallback_hint(location: str, symptom: str, concept: str) -> str:
-    """Generic locate-only hint built from validated fields; always passes the lint."""
-    sym = _clean(symptom, 120)
-    if not sym or not check_text(sym).ok:
-        sym = _GENERIC_SYMPTOM
+def fallback_hint(location: str, concept: str) -> str:
+    """Generic locate-only hint built from validated fields; always passes the lint. It does not repeat the symptom:
+    the CLI prints the symptom on its own line right above the hint."""
     con = _clean(concept, 60)
     if not con or not check_text(con).ok or not re.fullmatch(r"[\w .-]+", con):
         con = "this exercise"
     loc = location if re.fullmatch(r"[\w./-]+(:[\w.]+)?", location) else "the flagged location"
-    return f"Look at {loc}: {sym}. Re-read the brief for {con}."
+    return f"Look at {loc}. Re-read the brief for {con}."

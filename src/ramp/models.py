@@ -268,12 +268,19 @@ class Plan(_Strict):
     known: dict[str, int]
     hours_per_day: float = Field(gt=0)
     days: int = Field(gt=0)
-    deadline: str | None = None
     goals: list[str] = []
     concepts: list[ConceptDef]
     cando_map: list[CandoMap]
     slices: list[Slice]
     created_at: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_legacy_deadline(cls, data):
+        """Plans written while `deadline` existed (it was recorded but never used) still load."""
+        if isinstance(data, dict) and "deadline" in data:
+            data = {k: v for k, v in data.items() if k != "deadline"}
+        return data
 
     @model_validator(mode="after")
     def _fits_hours(self):

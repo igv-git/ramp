@@ -14,7 +14,7 @@ Expect green, including `tests/test_invariants.py` and `tests/eval/test_leak_eva
 ```bash
 export RAMP_HOME=~/.ramp                 # default
 mkdir -p $RAMP_HOME && cp docs/spec/descriptors.yaml docs/spec/claims.yaml $RAMP_HOME/
-export OPENROUTER_API_KEY=...            # never written to disk by ramp
+export API_KEY=...            # never written to disk by ramp
 uv run ramp init --skill python --to 2   # creates config.toml; edit the four `model` ids, then rerun
 ```
 Expect: refusal while descriptors are `mock`; after approval a curriculum table S1…S7 with minutes ≤ stated hours.

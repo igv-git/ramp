@@ -16,42 +16,45 @@ max_retries              = 2        # provider retries, backoff 1s then 3s
 
 [roles.planner]               # strong
 base_url   = "https://openrouter.ai/api/v1"
-api_key_env = "OPENROUTER_API_KEY"   # name of an env var; the key itself is never stored
-model      = "REPLACE_ME"           # OpenRouter model id (owner-chosen; unverified placeholder)
+base_url_env = "OPENROUTER_API_URL"   # optional: name of an env var; when set and non-empty it replaces base_url
+api_key_env = "API_KEY"   # name of an env var; the key itself is never stored
+model      = "claude-opus-5-5"      # default; any model id the endpoint accepts
 max_input_tokens  = 24000
 max_output_tokens = 6000
-usd_per_mtok_in   = 0.0             # owner fills; used only by the cost meter
-usd_per_mtok_out  = 0.0
+usd_per_mtok_in   = 4.0             # default = published Anthropic price (Opus 5.5); used only by the cost meter
+usd_per_mtok_out  = 20.0
 
 [roles.writer]                # strong
 base_url = "https://openrouter.ai/api/v1"
-api_key_env = "OPENROUTER_API_KEY"
-model = "REPLACE_ME"
+api_key_env = "API_KEY"
+model = "claude-sonnet-5-5"
 max_input_tokens = 24000
 max_output_tokens = 8000
-usd_per_mtok_in = 0.0
-usd_per_mtok_out = 0.0
+usd_per_mtok_in = 2.0
+usd_per_mtok_out = 10.0
 
 [roles.reviewer]              # must differ from writer
 base_url = "https://openrouter.ai/api/v1"
-api_key_env = "OPENROUTER_API_KEY"
-model = "REPLACE_ME_DIFFERENT"
+api_key_env = "API_KEY"
+model = "claude-haiku-5-5"
 max_input_tokens = 24000
 max_output_tokens = 3000
-usd_per_mtok_in = 0.0
-usd_per_mtok_out = 0.0
+usd_per_mtok_in = 0.10
+usd_per_mtok_out = 0.50
 
 [roles.grader]                # cheap
 base_url = "https://openrouter.ai/api/v1"
-api_key_env = "OPENROUTER_API_KEY"
-model = "REPLACE_ME_CHEAP"
+api_key_env = "API_KEY"
+model = "claude-haiku-5-5"
 max_input_tokens = 6000
 max_output_tokens = 600
-usd_per_mtok_in = 0.0
-usd_per_mtok_out = 0.0
+usd_per_mtok_in = 0.10
+usd_per_mtok_out = 0.50
 ```
 
-**Validation rules**: all four roles present; `roles.reviewer.model != roles.writer.model` (error otherwise); `model` not starting with `REPLACE_ME` when a call is attempted (clear message naming the file and key); `pass_threshold` in 0..5; caps > 0; `base_url` https, or http only for loopback (local endpoints allowed, Art. VIII); unknown keys are errors. A local endpoint (Ollama / LM Studio) is a valid `base_url`; its `api_key_env` may be empty.
+**Validation rules**: all four roles present; `roles.reviewer.model != roles.writer.model` (error otherwise); `model` not starting with `REPLACE_ME` when a call is attempted (clear message naming the file and key; the generated defaults are working models, so a fresh `init` does not stop on this); `pass_threshold` in 0..5; caps > 0; `base_url` https, or http only for loopback (local endpoints allowed, Art. VIII); unknown keys are errors. If `base_url_env` names a set, non-empty environment variable, its value replaces `base_url` at call time and must pass the same https/loopback rule (error otherwise). A local endpoint (Ollama / LM Studio) is a valid `base_url`; its `api_key_env` may be empty.
+
+**Optional `api_version`** (per role, string, default empty): set it for an Azure-OpenAI-style proxy. `base_url` is then the host only (for example `https://proxy.example.com`), the request goes to `<base_url>/openai/deployments/<model>/chat/completions?api-version=<api_version>`, `model` is the deployment name, and the key is sent in an `api-key` header instead of `Authorization: Bearer`. Empty keeps the plain OpenAI-style `<base_url>/chat/completions`.
 
 **Optional `thinking`** (per role, bool, default unset): `thinking = false` asks the provider not to spend output tokens on hidden reasoning. It is applied only on the native Anthropic endpoint (`base_url` host ends with `anthropic.com`, sent as `thinking: {type: disabled}`) and ignored elsewhere. The generated default sets it to `false` for `reviewer` and `grader`, whose replies are short structured data.
 

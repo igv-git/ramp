@@ -15,6 +15,11 @@ def _default_model(rc, api_key: str):
     from pydantic_ai.models.openai import OpenAIChatModel
 
     host = urlparse(rc.base_url).hostname or ""
+    if rc.api_version:  # Azure-OpenAI-style proxy: deployment route, api-version query, api-key header
+        from pydantic_ai.providers.azure import AzureProvider
+
+        return OpenAIChatModel(rc.model, provider=AzureProvider(
+            azure_endpoint=rc.base_url, api_version=rc.api_version, api_key=api_key or "none"))
     if host.endswith("anthropic.com"):  # native Anthropic API
         from pydantic_ai.models.anthropic import AnthropicModel
         from pydantic_ai.providers.anthropic import AnthropicProvider

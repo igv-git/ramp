@@ -40,9 +40,14 @@ def _count_collected(output: str) -> int:
     return len(_NODEID_RE.findall(output))
 
 
+_OUTPUT_FLAGS = {"-q", "-v", "-vv"}  # the verbosity options the allowlist permits
+
+
 def _collect_variant(v: ValidArgv) -> ValidArgv:
-    extra = [t for t in ("-q", "--collect-only") if t not in v.argv]
-    return ValidArgv(v.argv + extra, v.kind)
+    """The command with `-q --collect-only`. Verbosity flags are dropped first: a `-v` in the
+    acceptance command would cancel the `-q`, and pytest then prints a tree that the counter cannot read."""
+    kept = [t for t in v.argv if t not in _OUTPUT_FLAGS]
+    return ValidArgv(kept + ["-q", "--collect-only"], v.kind)
 
 
 def _log(slice_dir: Path, clock: Callable[[], datetime], result: GenCheckResult, commands: list[list[str]]) -> None:

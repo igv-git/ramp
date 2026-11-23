@@ -45,7 +45,7 @@ You do not copy them. The first `ramp init` creates `~/.ramp` with `config.toml`
 
 ### 2. Choose your models
 
-The first `ramp init` creates `~/.ramp/config.toml` with placeholder models and stops. Open it and set the `model` for each of the four roles:
+The first `ramp init` creates `~/.ramp/config.toml` with working default models (Opus for the planner, Sonnet for the writer, Haiku for the reviewer and grader). Open it to change the `model` of any of the four roles:
 
 | Role | Used for | Suggested kind |
 |---|---|---|
@@ -54,20 +54,23 @@ The first `ramp init` creates `~/.ramp/config.toml` with placeholder models and 
 | `reviewer` | critiquing your attempts | strong, **and a different model from the writer** |
 | `grader` | grading review cards and teach-backs | cheap |
 
-Use model ids as OpenRouter lists them. ramp refuses a config where the reviewer and writer use the same model. You can also fill in the price per million tokens so the cost meter works, and adjust the spending caps (default: $0.50 per command, $3.00 per day).
+Use the model ids your endpoint expects. ramp refuses a config where the reviewer and writer use the same model. The default config also carries the published Anthropic prices per million tokens (Opus 5.5 $4 in / $20 out, Sonnet 5.5 $2 / $10, Haiku 5.5 $0.10 / $0.50, checked 2026-11-22) so the cost meter works. If your provider charges differently, edit `usd_per_mtok_in` and `usd_per_mtok_out`; a price of 0.0 turns the spending caps off for that role. The caps default to $0.50 per command and $3.00 per day.
+
+Behind an Azure-OpenAI-style proxy (route `/openai/deployments/<model>/chat/completions?api-version=...`, key in an `api-key` header), set `base_url` to the host only, `model` to the deployment name and `api_version` to the version from your working curl, for example `api_version = "2023-12-01-preview"`.
 
 Then export your key. It is read from the environment, never written to disk:
 
 ```bash
-export OPENROUTER_API_KEY=...
+export API_KEY=...
+export OPENROUTER_API_URL=...   # optional: replaces base_url (default https://openrouter.ai/api/v1)
 ```
 
 ## Quickstart
 
 ```bash
-ramp init --skill python --to 2        # 1. first run creates ~/.ramp (config, descriptors, claims) and stops:
-                                       #    set the four models, edit claims.yaml honestly, then
-export OPENROUTER_API_KEY=...          #    export your key and run the same command again
+export API_KEY=...                     # 0. your provider key (read from the environment, never written to disk)
+ramp init --skill python --to 2        # 1. first run creates ~/.ramp (config, descriptors, claims) with working
+                                       #    default models; edit claims.yaml honestly, change models if you like
 ramp today                             # 2. each day: review cards first, then the slice brief
 # 3. write your code in ~/.ramp/slices/NN/workspace/src/, by hand
 ramp submit                            # 4. checks + hints; on a pass, answer the teach-back to unlock the next slice
@@ -82,7 +85,7 @@ Your counts, which the dogfood report is built from, are: **slices completed, ca
 ramp init --skill python --to 2
 ```
 
-ramp asks how many honest hours per day you can spend and for how many days (the default plan is 14 days of 45 minutes, about 10 hours of sessions and roughly 7 hours of hands-on work). You can also pass `--hours`, `--days` and `--deadline` to skip the questions.
+ramp asks how many honest hours per day you can spend and for how many days (the default plan is 14 days of 45 minutes, about 10 hours of sessions and roughly 7 hours of hands-on work). You can also pass `--hours` and `--days` to skip those two questions. It then asks for optional work goals, which are only a hint to the planner.
 
 What happens:
 
@@ -172,8 +175,8 @@ Each brief lists numbered comparisons to your old stack ("Bridges to what you kn
 | You see | Meaning and fix |
 |---|---|
 | `... is marked 'mock', not approved law` | `descriptors.yaml` is not approved. Set `_meta: status: approved` once you have reviewed the text. |
-| `config.toml: set roles.<role>.model` | Replace the placeholder model for that role in `~/.ramp/config.toml`. |
-| `environment variable OPENROUTER_API_KEY is not set` | Export the key, or change `api_key_env` for that role. |
+| `config.toml: set roles.<role>.model` | You left a `REPLACE_ME` model in `~/.ramp/config.toml`; set a real model id for that role. |
+| `environment variable API_KEY is not set` | Export the key, or change `api_key_env` for that role. |
 | `roles.reviewer.model must differ from roles.writer.model` | Pick a different reviewer model. |
 | `init failed: ... not checkable by local commands` | The skill or level cannot be taught this way; ramp lists the reasons. |
 | `could not produce a valid slice S3: ...` | The model kept writing a slice that failed the pre-flight check. Run `init` again; see `~/.ramp/slices/NN/gencheck.log` for the cause. |

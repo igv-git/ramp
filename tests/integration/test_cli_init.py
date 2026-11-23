@@ -32,12 +32,12 @@ def finish_config(home):
 
 
 def test_init_first_run_creates_home_repo_and_default_config(seeded):
-    # no config yet: init creates it, but placeholder models stop the run with an actionable message
+    # no config yet: init creates it with working default models; without an API key it stops before any call
     res = runner.invoke(app, ARGS, obj={})
     assert res.exit_code == 1
     assert (seeded / "config.toml").exists() and (seeded / ".git").is_dir()
     assert "profile.db" in (seeded / ".gitignore").read_text().split()
-    assert "config.toml" in res.output and "model" in res.output
+    assert "API_KEY" in res.output
     assert not (seeded / "stacks").exists()
 
 
@@ -64,15 +64,19 @@ def test_init_success_prints_curriculum(seeded):
 def test_init_accepts_all_flags(seeded):
     config.write_default(seeded)
     finish_config(seeded)
-    res = runner.invoke(
-        app, [*ARGS, "--deadline", "2026-12-01", "--law-dir", str(seeded)], obj={"llm": good_llm()})
+    res = runner.invoke(app, [*ARGS, "--law-dir", str(seeded)], obj={"llm": good_llm()})
     assert res.exit_code == 0, res.output
+
+
+def test_init_has_no_deadline_flag(seeded):
+    res = runner.invoke(app, [*ARGS, "--deadline", "2026-12-01"], obj={"llm": good_llm()})
+    assert res.exit_code == 2
 
 
 def test_init_prompts_for_missing_hours(seeded):
     config.write_default(seeded)
     finish_config(seeded)
-    res = runner.invoke(app, ["init", "--skill", "python", "--to", "2"], input="1\n1\n\n\n", obj={"llm": good_llm()})
+    res = runner.invoke(app, ["init", "--skill", "python", "--to", "2"], input="1\n1\n\n", obj={"llm": good_llm()})
     assert res.exit_code == 0, res.output
 
 
